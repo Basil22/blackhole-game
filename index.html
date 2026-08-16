@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05060a" />
+  <link rel="icon" type="image/png" href="favicon.ico" />
+  <title>Event Horizon — Black Hole Sandbox</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="vignette"></div>
+
+  <!-- top bar -->
+  <div id="top-bar">
+    <div class="title">⚫ EVENT HORIZON</div>
+    <div class="top-right">
+      <button id="share-btn" class="icon-btn" title="Share capture">📤</button>
+      <button id="photo-btn" class="icon-btn" title="Capture frame">📸</button>
+    </div>
+  </div>
+
+  <!-- HUD bottom -->
+  <div id="hud">
+    <div id="picker"></div>
+    <div id="size-row">
+      <label for="size-slider">SIZE</label>
+      <input id="size-slider" type="range" min="0.3" max="10" step="0.1" value="1" />
+      <span id="size-val">1.0×</span>
+    </div>
+    <div id="zoom-row">
+      <label for="zoom-slider">ZOOM</label>
+      <input id="zoom-slider" type="range" min="0" max="100" step="1" value="10" />
+      <span id="zoom-val">61</span>
+    </div>
+    <div id="object-info" class="hint"></div>
+    <div id="bottom-controls">
+      <button id="slowmo-btn" class="ctrl-btn slowmo-btn">⏩</button>
+      <button id="throw-btn" class="ctrl-btn primary">THROW</button>
+    </div>
+  </div>
+
+  <button id="help-open" class="help-fab" title="How to play">?</button>
+
+  <div id="readout" class="readout"></div>
+  <div id="flash" class="flash"></div>
+
+  <!-- help modal -->
+  <div id="help-modal" class="modal">
+    <div class="modal-box">
+      <h2>⚫ Event Horizon</h2>
+      <p>Real spaghettification. Throw objects into a black hole and watch tidal forces rip them apart — physics-accurate gravity, spring-mass materials, and a real event horizon.</p>
+      <h3>How to play</h3>
+      <ul>
+        <li><b>1.</b> Pick an object (asteroid, astronaut, ship, planet)</li>
+        <li><b>2.</b> Tap <b>THROW</b>, then <b>drag</b> on screen to aim (arrow shows direction &amp; power)</li>
+        <li><b>3.</b> Release to fling it toward the hole</li>
+        <li><b>4.</b> Tap <b>SLOW-MO</b> to watch the stretch and tears in slow motion</li>
+        <li><b>5.</b> Drag empty space to orbit the camera, pinch to zoom</li>
+        <li><b>6.</b> 📸 capture a frame, 📤 share it</li>
+      </ul>
+      <p class="phys"><b>The physics:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
+      <button id="help-close" class="ctrl-btn primary">LET'S GO</button>
+    </div>
+  </div>
+
+  <script src="js/vendor-three.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
