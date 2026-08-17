@@ -26,6 +26,14 @@ function survived(telemetry) {
   return consumed === 0 && telemetry.terminationReason !== 'PLAYER_RESET';
 }
 
+// A "fully consumed" object lost every point to the horizon.
+function isFullyConsumed(telemetry) {
+  if (telemetry.terminationReason === 'PLAYER_RESET') return false;
+  const initial = Number.isFinite(telemetry.initialPointCount) ? telemetry.initialPointCount : 0;
+  const consumed = Number.isFinite(telemetry.consumedPointCount) ? telemetry.consumedPointCount : 0;
+  return initial > 0 && consumed >= initial;
+}
+
 function horizonRadius(score, telemetry) {
   if (score && Number.isFinite(score.horizonRadius) && score.horizonRadius > 0) return score.horizonRadius;
   if (telemetry && Number.isFinite(telemetry.horizonRadius) && telemetry.horizonRadius > 0) return telemetry.horizonRadius;
@@ -90,7 +98,9 @@ function evaluateNearHorizon(mission, telemetry, score) {
   };
 }
 
-// SURVIVE_NEAR_HORIZON — near-horizon pass that the object SURVIVED (not consumed).
+// SURVIVE_NEAR_HORIZON — near-horizon pass where the object was NOT fully
+// consumed. Partial survival (some points lost, some remain) counts: the object
+// grazed the void and lived to tell the tale.
 function evaluateSurviveNearHorizon(mission, telemetry, score) {
   const hr = horizonRadius(score, telemetry);
   if (hr === null) return fail(mission.id, 'no horizon radius');
@@ -98,24 +108,36 @@ function evaluateSurviveNearHorizon(mission, telemetry, score) {
   const d = telemetry.closestApproach ? telemetry.closestApproach.distance : NaN;
   if (!Number.isFinite(d) || d <= 0) return fail(mission.id, 'no closest approach');
   const closeEnough = d <= targetDistance;
-  const completed = closeEnough && survived(telemetry);
+  if (telemetry.terminationReason === 'PLAYER_RESET') {
+    return {
+      missionId: mission.id, completed: false, progress: 0,
+      reason: 'Throw aborted',
+    };
+  }
+  const fullyConsumed = isFullyConsumed(telemetry);
+  const completed = closeEnough && !fullyConsumed;
   if (!closeEnough) {
     return {
       missionId: mission.id, completed, progress: distanceProgress(d, targetDistance),
       reason: `Closest ${fmtDist(d)} — need ≤ ${fmtDist(targetDistance)}`,
     };
   }
-  if (!survived(telemetry)) {
+  if (fullyConsumed) {
     return {
       missionId: mission.id, completed, progress: 0,
       reason: telemetry.terminationReason === 'PLAYER_RESET'
         ? 'Throw aborted'
-        : 'Passed close but was consumed',
+        : 'Passed close but the object was consumed',
     };
   }
+  const initial = telemetry.initialPointCount || 0;
+  const consumed = telemetry.consumedPointCount || 0;
+  const intact = consumed === 0;
   return {
     missionId: mission.id, completed: true, progress: 1,
-    reason: `Survived a pass within ${mission.target}× horizon`,
+    reason: intact
+      ? `Survived a pass within ${mission.target}× horizon`
+      : `Grazed the void — ${consumed}/${initial} points lost, but not consumed`,
   };
 }
 

@@ -34,10 +34,20 @@ const UI_SOURCES = [
   'js/main.js',
   'js/game/ui.js',
   'js/game/missionui.js',
+  'js/game/campaignui.js',
+  'js/game/campaign/levels.js',
+  'js/game/campaign/state.js',
+  'js/game/campaign/storage.js',
+  'js/game/campaign/campaign.js',
   'js/game/result.js',
   'js/game/guidehud.js',
   'js/game/presentation.js',
   'js/game/readout.js',
+  'js/game/opening.js',
+  'js/game/settingsui.js',
+  'js/game/settings/model.js',
+  'js/game/settings/storage.js',
+  'js/game/settings/index.js',
   'js/ui/theme.js',
   'js/ui/icons.js',
   'css/style.css',
@@ -166,9 +176,12 @@ test('buttons are hard-edged, not pill/capsule', () => {
 
 test('touch targets are not smaller than 44px', () => {
   const css = read('css/style.css');
-  // primary action, slow-mo, icon buttons, help, chip, list rows, sliders
-  assert.ok(css.includes('.icon-btn {\n  width: 44px; height: 44px;'));
-  assert.ok(css.includes('min-height: 44px'));
+  // Phase 21: centralized button sizing tokens feed every control category.
+  assert.ok(css.includes('--btn-icon: 44px'), 'icon button token');
+  assert.ok(css.includes('--btn-min-h: 44px'), 'control button token');
+  assert.ok(css.includes('--btn-min-h-action: 48px'), 'primary action token');
+  assert.ok(css.includes('.icon-btn {\n  width: var(--btn-icon); height: var(--btn-icon);'));
+  assert.ok(css.includes('min-height: var(--btn-min-h)'));
   assert.ok(css.includes('min-height: 46px'));
   assert.ok(css.includes('height: 44px;') || css.includes('min-height: 44px'),
     'slider rows keep 44px touch height');
@@ -238,10 +251,10 @@ test('markup icons are decorative svg with accessible controls', () => {
   const svgs = (html.match(/<svg/g) || []).length;
   assert.ok(svgs >= 4, `only ${svgs} inline svgs`);
   assert.ok(html.includes('aria-hidden="true"'), 'decorative icons hidden');
-  assert.ok(html.includes('aria-label="Share capture"'));
+  assert.ok(!html.includes('aria-label="Share capture"'), 'Phase 21: no share button');
   assert.ok(html.includes('aria-label="Capture frame"'));
   assert.ok(html.includes('aria-label="Toggle slow motion"'));
-  assert.ok(html.includes('aria-label="How to play"'));
+  assert.ok(html.includes('aria-label="Menu"'));
 });
 
 // ---------------------------------------------------- accessibility --------

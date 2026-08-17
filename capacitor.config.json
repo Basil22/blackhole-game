@@ -1,0 +1,17 @@
+{
+  "appId": "com.spacestudio.blackhole",
+  "appName": "Black Hole",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": null,
+      "keystoreAlias": null
+    }
+  },
+  "plugins": {
+    "Haptics": {}
+  }
+}

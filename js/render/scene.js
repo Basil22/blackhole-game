@@ -20,7 +20,11 @@ export class SceneManager {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 4000);
-    this.camera.position.set(0, 9.6, 208);
+    // Phase 23 — the settled gameplay framing IS zoom 30 (dist 868.8 on the
+    // zoom axis distFromSlider(30)=1200−0.3·1104). Skip-intro / reduced-motion
+    // land here directly; the opening dive settles here too. 208 was the old
+    // near close-up (≈slider 90); 868.8 is the wide establishing frame.
+    this.camera.position.set(0, 9.6, 868.8);
     this.camera.lookAt(0, -25.6, 0);
 
     buildLights(this.scene);

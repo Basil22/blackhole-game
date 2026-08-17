@@ -13,15 +13,22 @@ import { getMission } from '../missions/index.js';
 //       1 near-horizon-01 (Touch the Edge)
 //       2 escape-01        (Break Free)
 //       3 capture-01       (Into the Abyss)
-//       4 survive-near-horizon-01 (Grazing the Void)
-//       5 orbit-01         (Find the Orbit)
-//       6 score-01         (Make It Count)
-//       7 score-02         (High Roller)
+//       4 orbit-01         (Find the Orbit)
+//       5 score-01         (Make It Count)
+//       6 score-02         (High Roller)
+//
+// NOTE (Phase 24): survive-near-horizon-01 ("Grazing the Void") was REMOVED from
+// the forced order. Real-sim evidence: the horizon is binary — every close pass
+// (≤1.5×HR) consumes the object (human has zero partial survivals near the hole;
+// rock/ship/planet shed mass but all end HORIZON_CROSSING) — so no throw is both
+// close and survived. Keeping it in the forced chain stranded players on step 4
+// and made the progression campaign unwinnable on human/ship/planet paths. It
+// stays in the mission CATALOG as an optional (rock-reachable) side badge; it is
+// simply not part of the linear unlock ladder.
 export const MISSION_ORDER = Object.freeze([
   'near-horizon-01',
   'escape-01',
   'capture-01',
-  'survive-near-horizon-01',
   'orbit-01',
   'score-01',
   'score-02',

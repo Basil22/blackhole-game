@@ -11,6 +11,7 @@
 // lifecycle (js/main.js) feeds it the finalized mission evaluation.
 
 import { MISSION_CATALOG, getMission } from './missions/index.js';
+import { MISSION_ORDER } from './progression/index.js';
 import { getMissionChallenge, getRecommendedObject, getObjectChallengeProfile } from './challenges/index.js';
 import { icon } from '../ui/icons.js';
 
@@ -26,6 +27,7 @@ export class MissionUI {
     this.chipEl = document.getElementById('mission-chip');
     this.chipTitleEl = this.chipEl ? this.chipEl.querySelector('.ms-title') : null;
     this.counterEl = this.chipEl ? this.chipEl.querySelector('.ms-counter') : null;
+    this.chipObjEl = this.chipEl ? this.chipEl.querySelector('.ms-object') : null;
     this.modalEl = document.getElementById('mission-modal');
     this.listEl = this.modalEl ? this.modalEl.querySelector('.ms-list') : null;
 
@@ -202,10 +204,28 @@ export class MissionUI {
     const m = this.getSelected();
     if (!m) return;
     if (this.chipTitleEl) this.chipTitleEl.textContent = m.title;
+    // third line mirrors the level chip so both cards keep the same 3-row
+    // footprint: the mission's RECOMMENDED object plays the "OBJECT" slot.
+    if (this.chipObjEl) {
+      const ch = getMissionChallenge(m.id);
+      const rec = ch ? getRecommendedObject(ch.mission, this.objectCatalog) : null;
+      if (rec) {
+        const profile = getObjectChallengeProfile(rec.objectId);
+        this.chipObjEl.textContent = (this.objectCatalog.find((d) => d.id === rec.objectId) || {}).name
+          || (profile ? profile.title : rec.objectId);
+        this.chipObjEl.style.display = '';
+      } else {
+        this.chipObjEl.textContent = '';
+        this.chipObjEl.style.display = 'none';
+      }
+    }
     if (this.counterEl) {
       if (this.progression) {
         const done = this.progression.state.completedMissionIds.length;
-        this.counterEl.textContent = `${done} / ${MISSION_CATALOG.length}`;
+        // Phase 24: denominator is the FORCED ladder (6), not the catalog (7) —
+        // Grazing the Void is optional content now, so a finished campaign must
+        // read "6 / 6", never a permanently incomplete "6 / 7".
+        this.counterEl.textContent = `${done} / ${MISSION_ORDER.length}`;
         this.counterEl.style.display = '';
       } else {
         this.counterEl.textContent = '';

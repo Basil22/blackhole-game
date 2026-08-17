@@ -125,7 +125,9 @@ test('guidance still sees exactly the mapping launch velocity (bit-exact)', () =
 });
 
 test('aim-high cue is bound: fires while the pull is powerful but NOT yet free', () => {
-  const threshold = 0.8;
+  // Phase 24: threshold 0.70 so the cue sits at tangFrac ≈ 1.34 — still a
+  // bound pass (well before escape √2 ≈ 1.414) after tangMax moved to 1.77.
+  const threshold = 0.70;
   const tangAtThreshold = AIM_MAPPING.tangMin + threshold * (AIM_MAPPING.tangMax - AIM_MAPPING.tangMin);
   const escapeFrac = Math.SQRT2;
   const circFrac = 1.0;
@@ -201,7 +203,7 @@ test('aim-high cue: latched, throttled, fires only from _updateGuidance', () => 
   const main = read('js/game/main.js');
   const body = main.slice(main.indexOf('\n  _updateGuidance()'), main.indexOf('\n  _clearGuidance()'));
   assert.match(body, /aimFractions\(/);
-  assert.match(body, /power01 >= 0\.8/);
+  assert.match(body, /power01 >= 0\.70/);
   assert.match(body, /_highPowerLatched/);
   assert.match(body, /audio\?\.aimHigh\(\)/);
   // the latch re-arms on a pull-back and on beginAim / cancel

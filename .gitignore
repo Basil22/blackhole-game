@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Capacitor build output
+www/
+android/.gradle/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+android/capacitor-android/build/
+android/capacitor-haptics/build/
+android/capacitor-share/build/
+android/capacitor-app/build/
+
+# Signing (NEVER commit)
+*.keystore
+*.jks
+key.properties
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Test artifacts
+/tmp/

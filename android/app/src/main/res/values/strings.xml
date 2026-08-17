@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Black Hole</string>
+    <string name="title_activity_main">Black Hole</string>
+    <string name="package_name">com.spacestudio.blackhole</string>
+    <string name="custom_url_scheme">com.spacestudio.blackhole</string>
+</resources>

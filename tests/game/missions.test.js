@@ -123,13 +123,16 @@ test('SURVIVE_NEAR_HORIZON treats PLAYER_RESET as not survived', () => {
 });
 
 test('SCORE completes at/above target', () => {
-  const r = evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(150) });
+  // Phase 24: Make It Count target raised 100 → 1200 (was trivially auto-completing).
+  const target = score100.target;
+  const r = evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(target) });
   assert.strictEqual(r.completed, true);
   assert.strictEqual(r.progress, 1);
 });
 
 test('SCORE fails below target (progress proportional)', () => {
-  const r = evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(50) });
+  const target = score100.target;
+  const r = evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(Math.floor(target / 2)) });
   assert.strictEqual(r.completed, false);
   assert.ok(Math.abs(r.progress - 0.5) < 1e-9, `progress 0.5, got ${r.progress}`);
 });
@@ -220,4 +223,26 @@ test('evaluator uses the exact existing state strings (no new taxonomy)', () => 
   for (const m of MISSION_CATALOG.filter((x) => x.type === 'STATE')) {
     assert.ok(states.includes(m.state), `state ${m.state} is an existing state`);
   }
+});
+
+// ----------------------------------------------------------- Phase 24 balance ---
+import { CAMPAIGN_LEVELS } from '../../js/game/campaign/levels.js';
+
+test('Phase 24: score targets are achievable but not trivial (real-sim percentiles)', () => {
+  const mic = getMission('score-01');
+  const hr = getMission('score-02');
+  assert.strictEqual(mic.target, 1200, 'Make It Count raised to 1200');
+  assert.strictEqual(hr.target, 3000, 'High Roller raised to 3000');
+});
+
+test('Phase 24: Grazing is present in the catalog but not required by any level', () => {
+  assert.ok(getMission('survive-near-horizon-01'), 'Grazing still a real mission');
+  for (const l of CAMPAIGN_LEVELS) {
+    assert.ok(!l.requiredMissionIds.includes('survive-near-horizon-01'),
+      `Level ${l.title} must not require the impossible Grazing`);
+  }
+});
+
+test('Phase 24: every level required-set is completable by its object (no impossible gates)', () => {
+  assert.deepStrictEqual(CAMPAIGN_LEVELS.map((l) => l.requiredMissionIds.length), [2, 4, 6, 6]);
 });

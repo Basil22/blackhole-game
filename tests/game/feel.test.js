@@ -70,9 +70,10 @@ test('frozen gameplay tuning values are unchanged by the feel pass', () => {
   assert.deepStrictEqual(Object.keys(TRAJECTORY), [
     'ESCAPING', 'FLYBY', 'ORBITAL', 'CAPTURED', 'HORIZON_CROSSING', 'UNKNOWN',
   ]);
-  // aiming envelope anchors (Phase 13) — untouched
+  // aiming envelope anchors — tangMax lifted 1.62→1.77 (Phase 24) so a full-width  // 360px drag reaches real-sim escape (drag-loaded threshold ~tangFrac 1.587);
+  // all other Phase-13 anchors untouched.
   assert.strictEqual(AIM_MAPPING.tangMin, 0.35);
-  assert.strictEqual(AIM_MAPPING.tangMax, 1.62);
+  assert.strictEqual(AIM_MAPPING.tangMax, 1.77);
   assert.strictEqual(AIM_MAPPING.tangSpan, 340);
   assert.strictEqual(AIM_MAPPING.curve.escapeAt.tangFrac, Math.SQRT2);
   assert.strictEqual(AIM_MAPPING.curve.circularAt.dx, 258);

@@ -37,11 +37,24 @@ export class CameraInput {
     this.pointers = new Map();
     this.pinchDist = 0;
     this.aimActive = false;
+    // Phase 20 — keyboard gate while the opening screen / dive runs. Pointer
+    // input needs no lock (the full-screen opening overlay intercepts it); this
+    // just stops Space/Enter/S/R/Escape from firing gameplay before PLAY.
+    this._locked = false;
 
     this._bindPointers();
     this._bindCancelCleanup();
     this._bindSlider();
     this._bindKeyboard();
+  }
+
+  setLocked(v) {
+    this._locked = !!v;
+    return this._locked;
+  }
+
+  get locked() {
+    return this._locked;
   }
 
   _applyCam() {
@@ -191,11 +204,28 @@ export class CameraInput {
 
   _bindKeyboard() {
     window.addEventListener('keydown', (e) => {
+      if (this._locked) return;
       if (e.code === 'Space') { e.preventDefault(); this.cb.onSpace(); }
       if (e.code === 'Enter' && this.cb.isAiming()) this.cb.onEnter();
       if (e.code === 'Escape' && this.cb.isAiming()) this.cb.onCancelAim();
       if (e.code === 'KeyS') this.cb.onSlowmo();
       if (e.code === 'KeyR') this.cb.onRespawn();
     });
+  }
+
+  // Phase 20 — re-derive theta/phi/dist from the CURRENT camera position and
+  // re-apply the canonical framing (lookAt origin). Called when the opening
+  // dive settles the camera, so the cached orbit state matches reality and the
+  // next drag continues from the settled framing instead of snapping back.
+  syncFromCamera() {
+    const p = this.camera.position;
+    this.dist = p.length() || 1;
+    this.theta = Math.atan2(p.z, p.x);
+    this.phi = Math.acos(Math.max(-1, Math.min(1, p.y / this.dist)));
+    this._applyCam();
+    // Phase 23 — the camera IS the source of truth: after any settle, the zoom
+    // slider + numeric label must agree with the camera so there is never a
+    // camera=30 / UI=0 or camera=30 / UI=19 mismatch.
+    this.syncZoomSlider(this.dist);
   }
 }

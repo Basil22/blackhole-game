@@ -41,12 +41,17 @@ test('initial state: only the first mission is unlocked and current', () => {
   assert.ok(!isCampaignComplete(s));
 });
 
-test('MISSION_ORDER has the exact 7 spec missions in order', () => {
+test('MISSION_ORDER has the exact 6 spec missions in order (Phase 24: Grazing optional)', () => {
+  // Phase 24: survive-near-horizon-01 ("Grazing the Void") left the forced order —
+  // real-sim shows it is physically unreachable near the horizon (binary horizon:
+  // every ≤1.5×HR pass consumes; human has zero partial survivals), so keeping it
+  // in the chain stranded players and made the campaign unwinnable. It remains in
+  // the catalog as an OPTIONAL badge, so order ⊂ catalog now.
   assert.deepStrictEqual(
     [...MISSION_ORDER],
-    ['near-horizon-01', 'escape-01', 'capture-01', 'survive-near-horizon-01', 'orbit-01', 'score-01', 'score-02'],
+    ['near-horizon-01', 'escape-01', 'capture-01', 'orbit-01', 'score-01', 'score-02'],
   );
-  assert.strictEqual(MISSION_ORDER.length, MISSION_CATALOG.length, 'every catalog mission is in the order');
+  assert.ok(MISSION_ORDER.length <= MISSION_CATALOG.length, 'order never exceeds catalog');
   for (const id of MISSION_ORDER) assert.ok(MISSION_CATALOG.some((m) => m.id === id), `${id} exists in catalog`);
 });
 
@@ -92,9 +97,9 @@ test('any unlocked mission can be completed first (not just current)', () => {
   s = completeMission(s, SECOND).state;          // 2) beat mission 2 → unlock 3
   s = selectMission(s, 'capture-01');            // 3) select mission 3 (now unlocked)
   const { state, unlockedMissionId } = completeMission(s, 'capture-01');
-  assert.strictEqual(unlockedMissionId, 'survive-near-horizon-01', 'next-after-capture unlocks');
+  assert.strictEqual(unlockedMissionId, 'orbit-01', 'next-after-capture unlocks (Phase 24: orbit follows capture)');
   assert.deepStrictEqual(state.completedMissionIds, [FIRST, SECOND, 'capture-01']);
-  assert.strictEqual(state.currentMissionId, 'survive-near-horizon-01', 'newly unlocked becomes current');
+  assert.strictEqual(state.currentMissionId, 'orbit-01', 'newly unlocked becomes current');
 });
 
 test('out-of-order completions never skip ahead in the order', () => {
@@ -108,14 +113,14 @@ test('out-of-order completions never skip ahead in the order', () => {
   assert.strictEqual(state.currentMissionId, 'capture-01');
 });
 
-test('completing every mission unlocks all 7 and marks campaignComplete', () => {
+test('completing every mission unlocks all 6 and marks campaignComplete', () => {
   let s = createInitialProgressionState();
   for (const id of MISSION_ORDER) {
     const r = completeMission(s, id);
     s = r.state;
   }
-  assert.strictEqual(s.unlockedMissionIds.length, 7);
-  assert.strictEqual(s.completedMissionIds.length, 7);
+  assert.strictEqual(s.unlockedMissionIds.length, 6);
+  assert.strictEqual(s.completedMissionIds.length, 6);
   assert.strictEqual(s.currentMissionId, FINAL);
   assert.strictEqual(s.lastCompletedMissionId, FINAL);
   assert.ok(isCampaignComplete(s));
@@ -123,7 +128,7 @@ test('completing every mission unlocks all 7 and marks campaignComplete', () => 
 
 test('final mission unlocks nothing and completes the campaign', () => {
   let s = createInitialProgressionState();
-  for (const id of MISSION_ORDER.slice(0, 6)) s = completeMission(s, id).state;
+  for (const id of MISSION_ORDER.slice(0, MISSION_ORDER.length - 1)) s = completeMission(s, id).state;
   assert.ok(!isCampaignComplete(s));
   const { state, unlockedMissionId } = completeMission(s, FINAL);
   assert.strictEqual(unlockedMissionId, null, 'no mission after the final');
@@ -390,7 +395,7 @@ test('Progression: full campaign → snapshot reports campaignComplete and is fr
   for (const id of MISSION_ORDER) p.complete(id);
   const s = p.snapshot;
   assert.ok(s.campaignComplete);
-  assert.strictEqual(s.completedMissionIds.length, 7);
+  assert.strictEqual(s.completedMissionIds.length, MISSION_ORDER.length);
   assert.deepStrictEqual(s.unlockedMissionIds, [...MISSION_ORDER]);
   assert.throws(() => { s.completedMissionIds.push('x'); }, TypeError, 'nested array frozen');
   assert.throws(() => { s.campaignComplete = false; }, TypeError, 'snapshot frozen');

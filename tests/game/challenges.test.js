@@ -75,8 +75,9 @@ test('mission challenge metadata never changes completion semantics', () => {
   // the Phases 7-9 evaluator still uses only the original fields
   const score100 = getMission('score-01');
   const near = getMission('near-horizon-01');
-  assert.strictEqual(evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(150) }).completed, true);
-  assert.strictEqual(evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(50) }).completed, false);
+  // Phase 24: score-01 target is 1200, so fixture scores derive from it.
+  assert.strictEqual(evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(score100.target) }).completed, true);
+  assert.strictEqual(evaluateMission(score100, { telemetry: makeTelemetry(), score: makeScore(Math.floor(score100.target / 2)) }).completed, false);
   assert.strictEqual(evaluateMission(near, {
     telemetry: makeTelemetry({ closestApproach: { distance: 58, time: 3, position: { x: 0, y: 0, z: -58 }, velocity: { x: 0, y: 0, z: 0 } } }),
     score: makeScore(),

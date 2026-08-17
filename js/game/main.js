@@ -72,8 +72,9 @@ export class Game {
     // Horizon-crossing audio is a once-per-throw event (reset on each launch).
     this._horizonSounded = false;
     // Phase 18 — aim-high cue latch: the audio fires ONCE when the pull enters
-    // the powerful tail (power01 ≥ 0.8, a UI reading of the existing mapping),
-    // and re-arms only when the player pulls back below the threshold.
+    // the powerful tail (power01 ≥ 0.78 after Phase 24's envelope lift, a UI
+    // reading of the existing mapping), and re-arms only when the player pulls
+    // back below the threshold.
     this._highPowerLatched = false;
     // Callbacks set by the app shell (js/main.js): onThrowEnded fires with
     // {lastTelemetry, lastScore} right after a throw's result is finalized.
@@ -274,8 +275,11 @@ export class Game {
     // UI-normalized reading; it is never displayed). Latched so the throttled
     // prediction recompute can't re-fire it; only a pull-back below the
     // threshold re-arms. Pure audio side-channel, never a state writer.
+    // Phase 24: threshold 0.70 so the cue fires at tangFrac ≈ 1.34 — a
+    // powerful but BOUND pass, well before escape (√2 ≈ 1.414). Adjusted for
+    // tangMax 1.77 (needed for 360px mobile escape reachability).
     const fr = aimFractions({ dx: this.aim.dx, dy: this.aim.dy });
-    const high = fr.power01 >= 0.8;
+    const high = fr.power01 >= 0.70;
     if (high && !this._highPowerLatched) {
       this._highPowerLatched = true;
       this.audio?.aimHigh();

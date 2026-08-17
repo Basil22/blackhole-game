@@ -40,11 +40,30 @@ export class Haptics {
   constructor({ vibrate, reducedMotion = REDUCED_MOTION } = {}) {
     this._vibrate = vibrate;
     this._reducedMotion = reducedMotion;
+    this._enabled = true;
   }
 
   // True if a real vibrate function is available (stubbed in tests).
   get available() {
     return typeof this._vibrate === 'function';
+  }
+
+  // Phase 20 — explicit Haptics ON/OFF (the Settings screen owns this; the
+  // game layer never touches it directly).
+  setEnabled(v) {
+    this._enabled = !!v;
+    return this._enabled;
+  }
+
+  get enabled() {
+    return this._enabled;
+  }
+
+  // Phase 20 — let the app push the settings-resolved reduced-motion decision
+  // (system pref OR explicit toggle) into the haptic scaler.
+  setReducedMotion(v) {
+    this._reducedMotion = !!v;
+    return this._reducedMotion;
   }
 
   tap() { this._pulse('tap'); }
@@ -57,7 +76,7 @@ export class Haptics {
   failure() { this._pulse('failure'); }
 
   _pulse(name) {
-    if (!this.available) return;
+    if (!this.available || !this._enabled) return;
     try {
       const pattern = GESTURES[name];
       if (pattern === undefined) return;

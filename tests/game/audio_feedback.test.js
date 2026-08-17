@@ -366,16 +366,19 @@ test('source: mute preference persists to localStorage (bh_audio_enabled)', () =
   assert.match(main, /pointerdown/); // gesture unlock
 });
 
-test('source: speaker toggle is monochrome, present, and icon-swapped', () => {
+test('source: audio lives only in Settings; single capture button', () => {
   const html = read('index.html');
-  assert.match(html, /id="audio-btn"/);
-  assert.ok(html.indexOf('audio-btn') < html.indexOf('share-btn'), 'audio-btn must sit before share');
+  assert.ok(!html.includes('id="audio-btn"'), 'Phase 21: standalone speaker button removed');
+  assert.ok(!html.includes('id="share-btn"'), 'Phase 21: single capture button, no share');
+  assert.match(html, /id="photo-btn"/);
+  const css = read('css/style.css');
+  assert.ok(!css.includes('#audio-btn'), 'no orphan CSS for the removed toggle');
+  const main = read('js/main.js');
+  assert.match(main, /audioBtn = null/, 'Phase 21: main.js no longer wires a speaker button');
+  assert.match(main, /wordmark: 'Black Hole'/, 'Phase 21: Pascal-case top-bar wordmark');
   const icons = read('js/ui/icons.js');
   assert.match(icons, /'speaker-on':/);
   assert.match(icons, /'speaker-off':/);
-  const css = read('css/style.css');
-  assert.match(css, /#audio-btn/);
-  assert.match(css, /#audio-btn\.muted/);
   const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2764}]/u;
   const audioSrc = ['js/audio/sounds.js', 'js/audio/audio.js', 'js/audio/feedback.js',
     'js/audio/haptics.js', 'js/audio/index.js'].map(read).join('\n');
