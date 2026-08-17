@@ -36,6 +36,12 @@ export function buildStar(world, pos, opts = {}) {
   const stiffness = opts.stiffness ?? 60;
   const damping = opts.damping ?? 4;
   const breakStrain = opts.breakStrain ?? 0.08;
+  // shell springs may use a different (higher) break strain so the surface
+  // holds together as a solid while radial spokes tear first.
+  const shellBreakStrain = opts.shellBreakStrain ?? breakStrain;
+  // brace = triangulated shell (2nd-neighbor chords): stops the star from
+  // collapsing into an arc/point cloud the instant spokes snap.
+  const brace = opts.brace ?? false;
   const color = opts.color ?? 0xffcc88;
   const mass = opts.mass ?? 1;
   const center = world.addPoint(pos, mass * 1.5, 0.2);
@@ -59,7 +65,13 @@ export function buildStar(world, pos, opts = {}) {
   }
   for (let i = 1; i <= n; i++) {
     const j = i === n ? 1 : i + 1;
-    world.addSpring(i, j, stiffness * 0.8, damping, breakStrain, color);
+    world.addSpring(i, j, stiffness * 0.8, damping, shellBreakStrain, color);
+  }
+  if (brace) {
+    for (let i = 1; i <= n; i++) {
+      const j = ((i + 1) % n) + 1;
+      world.addSpring(i, j, stiffness * 0.6, damping, shellBreakStrain, color);
+    }
   }
   return indices;
 }

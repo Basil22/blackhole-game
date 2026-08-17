@@ -21,7 +21,7 @@ export const CATALOG = [
         radius,
         stiffness: 500 * size,
         damping: 12,
-        breakStrain: 1.0,
+        breakStrain: 0.5,
         mass: 1.2 * size,
         color: 0x9a8f7c,
       });
@@ -131,9 +131,11 @@ export const CATALOG = [
       const idx = buildStar(world, origin, {
         points: 30,
         radius,
-        stiffness: 60 * size,
-        damping: 3,
-        breakStrain: 0.25,
+        stiffness: 30 * size,
+        damping: 0.6,
+        breakStrain: 0.38,
+        shellBreakStrain: 0.9,
+        brace: true,
         mass: size,
         color: 0x7ab8ff,
       });

@@ -48,7 +48,28 @@ export function buildBlackHole(scene, hr) {
   glowSprite.renderOrder = -1;
   scene.add(glowSprite);
 
-  return { hole, diskGroup, diskMat, diskMesh, photonRing, glowSprite };
+  return {
+    hole,
+    diskGroup,
+    diskMat,
+    diskMesh,
+    photonRing,
+    glowSprite,
+    // Renderer-only adapter: the current scene.js drives the black hole
+    // through bh.update(dt, time). This reproduces exactly what the old
+    // scene.js did for this baseline — animate the disk shader's clock and
+    // gently spin the disk group. No visual composition change.
+    update(dt, time) {
+      if (diskMat) diskMat.uniforms.uTime.value = time;
+      diskGroup.rotation.z += dt * 0.02;
+    },
+    // Renderer-only fx hooks the current loop.js calls on tear/consume/proximity
+    // (optional-chained against bh, not against the method — they must exist).
+    // No-ops in this baseline: the pre-6B build has no cinematic glare.
+    setProximity() {},
+    flash() {},
+    agitate() {},
+  };
 }
 
 function makeDiskMaterial(inner, outer) {

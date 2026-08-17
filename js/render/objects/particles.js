@@ -34,8 +34,27 @@ export class ParticleSystem {
     }
   }
 
-  tear(pos, vel, color, count = 8) {
-    this.burst(pos, vel, color, count, 1.5, 0.5, 1.2);
+  // Directional release puff at the moment of launch: droplets biased along the
+  // throw direction so the release reads as an impulse — the object separates
+  // from a dissolving streak — instead of a silent sprite pop.
+  launchTrail(pos, vel, color, count = 6) {
+    const dir = new THREE.Vector3(vel.x, vel.y, vel.z);
+    const speed = dir.length() || 1e-3;
+    dir.normalize();
+    for (let i = 0; i < count; i++) {
+      const s = speed * (0.10 + Math.random() * 0.22); // droplets trail behind
+      const v = new THREE.Vector3(dir.x * s, dir.y * s, dir.z * s);
+      v.add(new THREE.Vector3(
+        (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6,
+      ).multiplyScalar(s));
+      this._emit(pos, v, color, 0.7 * (0.6 + Math.random() * 0.8), 0.45 * (0.7 + Math.random() * 0.6), 0.02);
+    }
+  }
+
+  tear(pos, vel, color, count = 14) {
+    this.burst(pos, vel, color, count, 2.6, 0.6, 1.0);
+    // a few hot white snap sparks ride the biggest chunks out
+    this.burst(pos, vel, 0xffffff, 3, 4.4, 0.22, 0.5);
   }
 
   accretionFlash(pos, vel, radius) {

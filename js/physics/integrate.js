@@ -4,27 +4,38 @@
 
 import { V3 } from './vec3.js';
 
+// Gravitational acceleration at `pos` (BH at origin): a = -mu * r / |r|^3,
+// softened with eps so near-zero distance cannot blow up (a -> 0 as r -> 0,
+// and r < 1e-6 is skipped entirely). Writes into `out` (no allocation).
+export function gravityAcceleration(w, out, pos) {
+  const r2 = V3.lengthSq(pos);
+  if (r2 < 1e-6) { out.x = 0; out.y = 0; out.z = 0; return out; }
+  const eps2 = w.softening * w.softening;
+  const inv = 1 / (r2 + eps2);
+  const mag = w.mu * inv / Math.sqrt(r2); // mu/r^3 (softened) -> a = mu*r/r^3 = mu/r^2
+  out.x = -mag * pos.x;
+  out.y = -mag * pos.y;
+  out.z = -mag * pos.z;
+  return out;
+}
+
 // Apply gravity + spring forces, integrate with semi-implicit Euler.
 export function integrate(w, dt) {
   const f = w._f;
   const bodies = w.bodies;
   const n = bodies.length;
-  const eps2 = w.softening * w.softening;
 
   for (let i = 0; i < n; i++) { const v = f[i]; v.x = 0; v.y = 0; v.z = 0; }
 
-  // gravity toward origin
+  // gravity toward origin (each mass at its OWN position -> tidal stretch)
   if (w.gravity) {
     for (let i = 0; i < n; i++) {
       const p = bodies[i];
       if (!p.alive) continue;
-      const r2 = V3.lengthSq(p.pos);
-      if (r2 < 1e-6) continue;
-      const inv = 1 / (r2 + eps2);
-      const mag = w.mu * inv / Math.sqrt(r2); // mu/r^3 (softened)
-      f[i].x -= mag * p.pos.x * p.mass;
-      f[i].y -= mag * p.pos.y * p.mass;
-      f[i].z -= mag * p.pos.z * p.mass;
+      gravityAcceleration(w, w._scratch, p.pos);
+      f[i].x += w._scratch.x * p.mass;
+      f[i].y += w._scratch.y * p.mass;
+      f[i].z += w._scratch.z * p.mass;
     }
   }
 
@@ -32,6 +43,7 @@ export function integrate(w, dt) {
   for (const s of w.springs) {
     if (!s.alive) continue;
     const a = bodies[s.a], b = bodies[s.b];
+    if (!a.alive || !b.alive) continue; // consumed this/prior substep — no force
     const dx = b.pos.x - a.pos.x, dy = b.pos.y - a.pos.y, dz = b.pos.z - a.pos.z;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
     const invD = 1 / dist;

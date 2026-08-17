@@ -1,5 +1,7 @@
-// game/spawn.js — builds a throwable sim: an object's own world + visualizer +
-// telemetry. Each throw gets its OWN world so multiple objects can fly at once.
+// game/spawn.js — builds a throwable sim: an object's own world + visualizer.
+// Each throw gets its OWN world so multiple objects can fly at once. The
+// ThrowTelemetry builder is attached at launch (game/main.js) once velocity is
+// applied, so its initial snapshot reflects the real throw.
 
 import { BlackHoleWorld, V3 } from '../physics.js';
 import { ObjectVisualizer } from '../render/objects.js';
@@ -14,19 +16,9 @@ export function colorFor(kind) {
   }
 }
 
-export function computeSpan(world) {
-  let min = Infinity, max = -Infinity;
-  for (const p of world.bodies) {
-    const r = Math.hypot(p.pos.x, p.pos.y, p.pos.z);
-    if (r < min) min = r;
-    if (r > max) max = r;
-  }
-  return max - min;
-}
-
 // Spawns the object held at `spawnPos` (dragged by aim). Returns
-// { world, visualizer, meta, kind, color, telemetry }.
-export function buildHeld({ def, size, spawnPos, horizonRadius, scene, timeScale = 1 }) {
+// { world, visualizer, meta, kind, color }.
+export function buildHeld({ def, size, spawnPos, horizonRadius, scene }) {
   // drag = orbital decay: every object and torn fragment eventually spirals
   // into the horizon instead of orbiting forever.
   // drag scales with size: orbital decay clears debris fast for giant objects
@@ -50,13 +42,5 @@ export function buildHeld({ def, size, spawnPos, horizonRadius, scene, timeScale
     meta,
     kind: def.id,
     color: colorFor(def.id),
-    telemetry: {
-      initialSpan: computeSpan(world),
-      maxSpan: 0,
-      tears: 0,
-      consumed: 0,
-      dist: spawnPos.length(),
-      timeScale,
-    },
   };
 }

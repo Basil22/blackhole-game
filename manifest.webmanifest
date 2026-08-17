@@ -1,11 +1,11 @@
 {
-  "name": "Event Horizon — Black Hole Sandbox",
-  "short_name": "Event Horizon",
+  "name": "Black Hole",
+  "short_name": "Black Hole",
   "description": "Throw objects into a black hole and watch real spaghettification — physics-accurate tidal forces and a real event horizon.",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#05060a",
-  "theme_color": "#05060a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "landscape",
   "icons": [
     {

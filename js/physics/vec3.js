@@ -10,6 +10,12 @@ export const V3 = {
   sub(out, a, b) { out.x = a.x - b.x; out.y = a.y - b.y; out.z = a.z - b.z; return out; },
   scale(out, a, s) { out.x = a.x * s; out.y = a.y * s; out.z = a.z * s; return out; },
   dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; },
+  cross(out, a, b) {
+    out.x = a.y * b.z - a.z * b.y;
+    out.y = a.z * b.x - a.x * b.z;
+    out.z = a.x * b.y - a.y * b.x;
+    return out;
+  },
   length(v) { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); },
   lengthSq(v) { return v.x * v.x + v.y * v.y + v.z * v.z; },
   normalize(out, v) {
