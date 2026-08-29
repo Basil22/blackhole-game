@@ -31,12 +31,17 @@ export class SceneManager {
     this.scene.add(this.stars2);
 
     const bh = buildBlackHole(this.scene, this.config.horizonRadius);
+    this.bh = bh; // fx handle — loop reads sim state and drives setProximity/flash/agitate
     this.hole = bh.hole;
     this.diskGroup = bh.diskGroup;
     this.diskMesh = bh.diskMesh;
     this.diskMat = bh.diskMat;
     this.photonRing = bh.photonRing;
     this.glowSprite = bh.glowSprite;
+
+    // Real-time animation clock for the black hole. simTime only advances while
+    // physics runs, so the disk/ring would freeze the moment a throw ends.
+    this._animTime = 0;
   }
 
   resize() {
@@ -47,13 +52,13 @@ export class SceneManager {
   }
 
   update(dt, time) {
-    if (this.diskMat) this.diskMat.uniforms.uTime.value = time;
+    this._animTime += dt;
+    if (this.bh) this.bh.update(dt, this._animTime);
     this.stars.rotation.y += dt * 0.002;
     if (this.stars2) this.stars2.rotation.y += dt * 0.0015;
-    // gently rotate disk for liveliness
-    this.diskGroup.rotation.z += dt * 0.02;
     // photon ring always faces the camera -> full circle from any angle
     if (this.photonRing) this.photonRing.quaternion.copy(this.camera.quaternion);
+    if (this.bh?.lensGroup) this.bh.lensGroup.quaternion.copy(this.camera.quaternion);
   }
 
   render() {

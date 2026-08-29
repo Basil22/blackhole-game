@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#05060a" />
+  <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="favicon.ico" />
-  <title>Event Horizon — Black Hole Sandbox</title>
+  <title>BLACK HOLE — Spaghettification Sandbox</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -15,10 +15,11 @@
 
   <!-- top bar -->
   <div id="top-bar">
-    <div class="title">⚫ EVENT HORIZON</div>
+    <div class="title" aria-label="BLACK HOLE"><span data-brand>BLACK HOLE</span></div>
     <div class="top-right">
-      <button id="share-btn" class="icon-btn" title="Share capture">📤</button>
-      <button id="photo-btn" class="icon-btn" title="Capture frame">📸</button>
+      <button id="audio-btn" class="icon-btn" title="Sound" aria-label="Mute sound"></button>
+      <button id="share-btn" class="icon-btn" title="Share capture" aria-label="Share capture"><svg class="ui-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M12 3 V15 M12 3 L7 8 M12 3 L17 8 M6 13.5 V19 H18 V13.5"/></svg></button>
+      <button id="photo-btn" class="icon-btn" title="Capture frame" aria-label="Capture frame"><svg class="ui-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M4 8.5 h4.2 L10.4 5.8 h3.2 L15.8 8.5 H20 V18.5 H4 Z M12 12.4 a2.6 2.6 0 1 0 0.001 0 Z"/></svg></button>
     </div>
   </div>
 
@@ -37,31 +38,63 @@
     </div>
     <div id="object-info" class="hint"></div>
     <div id="bottom-controls">
-      <button id="slowmo-btn" class="ctrl-btn slowmo-btn">⏩</button>
+      <button id="slowmo-btn" class="ctrl-btn slowmo-btn" title="Slow motion" aria-label="Toggle slow motion">
+        <span class="ico ico-play"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M8 4.5 L18.5 12 L8 19.5 Z"/></svg></span>
+        <span class="ico ico-rewind"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M7.5 5 V19 M7.5 12 L12 8.6 V15.4 Z M13.5 12 L18 8.6 V15.4 Z"/></svg></span>
+      </button>
       <button id="throw-btn" class="ctrl-btn primary">THROW</button>
+      <button id="cancel-btn" class="ctrl-btn cancel-btn" type="button" title="Cancel aiming" aria-label="Cancel aiming">
+        <svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        <span>CANCEL</span>
+      </button>
     </div>
   </div>
 
-  <button id="help-open" class="help-fab" title="How to play">?</button>
+  <button id="help-open" class="help-fab" title="How to play" aria-label="How to play"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M9.8 9.2 a2.2 2.2 0 1 1 3 2.1 c-.9.4-1.4 1-1.4 2.3 M12 17.2 v.1"/></svg></button>
 
   <div id="readout" class="readout"></div>
   <div id="flash" class="flash"></div>
 
+  <!-- compact aiming HUD (secondary; trajectory line stays primary) -->
+  <div id="guidance-hud" class="hud-chip" aria-live="polite">
+    <span class="gh-state tonal-neutral"></span><span class="gh-dist"></span>
+  </div>
+
+  <!-- compact current-mission chip (static; opened by tapping) -->
+  <button id="mission-chip" class="mission-chip" type="button" aria-haspopup="dialog" aria-label="Current mission">
+    <span class="ms-kicker"><span>MISSION</span><span class="ms-counter"></span></span>
+    <span class="ms-title"></span>
+  </button>
+
+  <!-- mission selector (lightweight modal) -->
+  <div id="mission-modal" class="mission-modal" role="dialog" aria-modal="true" aria-label="Choose mission">
+    <div class="mission-modal-box">
+      <h2 class="ms-heading">MISSION</h2>
+      <div class="ms-list"></div>
+      <button class="ctrl-btn primary ms-close" type="button">DONE</button>
+    </div>
+  </div>
+
+  <!-- throw result (built by js/game/result.js) -->
+  <div id="result-scrim" aria-hidden="true"></div>
+  <div id="result" role="dialog" aria-label="Throw result"></div>
+
   <!-- help modal -->
   <div id="help-modal" class="modal">
     <div class="modal-box">
-      <h2>⚫ Event Horizon</h2>
+      <h2 class="brand-display">BLACK<span>HOLE</span></h2>
+      <p class="brand-tag">NEWTONIAN SPAGHETTIFICATION SANDBOX</p>
       <p>Real spaghettification. Throw objects into a black hole and watch tidal forces rip them apart — physics-accurate gravity, spring-mass materials, and a real event horizon.</p>
-      <h3>How to play</h3>
+      <h3>HOW TO PLAY</h3>
       <ul>
         <li><b>1.</b> Pick an object (asteroid, astronaut, ship, planet)</li>
         <li><b>2.</b> Tap <b>THROW</b>, then <b>drag</b> on screen to aim (arrow shows direction &amp; power)</li>
         <li><b>3.</b> Release to fling it toward the hole</li>
         <li><b>4.</b> Tap <b>SLOW-MO</b> to watch the stretch and tears in slow motion</li>
         <li><b>5.</b> Drag empty space to orbit the camera, pinch to zoom</li>
-        <li><b>6.</b> 📸 capture a frame, 📤 share it</li>
+        <li><b>6.</b> Capture a frame, or share it</li>
       </ul>
-      <p class="phys"><b>The physics:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
+      <p class="phys"><b>THE PHYSICS:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
       <button id="help-close" class="ctrl-btn primary">LET'S GO</button>
     </div>
   </div>

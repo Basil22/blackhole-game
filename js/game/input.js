@@ -5,17 +5,33 @@
 const MIN_DIST = 96;
 const MAX_DIST = 1200;
 
+// Phase 17 — zoom-slider semantics: LEFT = farthest (ZOOM OUT), RIGHT = closest
+// (ZOOM IN). Only the UI mapping is inverted; the camera range (MIN_DIST..
+// MAX_DIST) and every pinch/orbit behavior are unchanged. These pure helpers
+// are exported so the node test suite can assert the monotonic endpoints.
+export function distFromSlider(v) {
+  const p = Math.max(0, Math.min(100, v)) / 100;
+  return MAX_DIST - p * (MAX_DIST - MIN_DIST);
+}
+
+export function sliderFromDist(d) {
+  return Math.round(((MAX_DIST - d) / (MAX_DIST - MIN_DIST)) * 100);
+}
+
+export { MIN_DIST, MAX_DIST };
+
 export class CameraInput {
   constructor(el, camera, callbacks) {
     this.el = el;
     this.camera = camera;
-    this.cb = callbacks; // { isAiming, onAimMove(dx,dy), onAimEnd, onSpace, onEnter, onSlowmo, onRespawn, syncZoomSlider(dist) }
+    this.cb = callbacks; // { isAiming, onAimMove(dx,dy), onAimEnd, onCancelAim, onSpace, onEnter, onSlowmo, onRespawn, syncZoomSlider(dist) }
 
     this.theta = Math.atan2(camera.position.z, camera.position.x);
     this.phi = Math.acos(camera.position.y / camera.position.length());
     this.dist = camera.position.length();
 
     this.dragging = false;
+    this.cameraDragActive = false; // orbit ONLY while an explicit canvas gesture is held
     this.lastX = 0;
     this.lastY = 0;
     this.pointers = new Map();
@@ -23,6 +39,7 @@ export class CameraInput {
     this.aimActive = false;
 
     this._bindPointers();
+    this._bindCancelCleanup();
     this._bindSlider();
     this._bindKeyboard();
   }
@@ -53,13 +70,24 @@ export class CameraInput {
   _bindPointers() {
     const el = this.el;
 
+    const capture = (pid) => {
+      try { el.setPointerCapture(pid); } catch (err) { /* pointer already gone */ }
+    };
+
     el.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      // Only start an interaction from the canvas itself — UI controls (zoom
+      // slider, object picker, buttons) live on top of it and must never leak
+      // a drag into the camera. Capture the pointer so the matching pointerup
+      // is delivered to the canvas even when released over a HUD element.
+      if (e.target !== el && !el.contains(e.target)) return;
+      capture(e.pointerId);
       this.pointers.set(e.pointerId, this._getPos(e));
       if (this.pointers.size === 2) {
         // pinch — cancel drag + aim, orbit is handled by pinch zoom
         this.pinchDist = this._pdist();
         this.dragging = false;
+        this.cameraDragActive = false;
         this.aimActive = false;
         return;
       }
@@ -68,6 +96,8 @@ export class CameraInput {
       // In aim mode, a pointer down anywhere = start slingshot
       if (this.cb.isAiming()) {
         this.aimActive = true;
+      } else {
+        this.cameraDragActive = true;
       }
     });
 
@@ -91,31 +121,51 @@ export class CameraInput {
         this.cb.onAimMove(dx, dy);
         return;
       }
-      // camera orbit
+      // camera orbit — blocked unless an explicit drag is active
+      if (!this.cameraDragActive) return;
       this.theta -= dx * 0.005;
       this.phi -= dy * 0.005;
       this.phi = Math.max(0.15, Math.min(Math.PI - 0.15, this.phi));
       this._applyCam();
     });
 
-    const endDrag = (e) => {
+    const endDrag = (e, force) => {
       if (this.pointers.has(e.pointerId)) this.pointers.delete(e.pointerId);
-      if (!this.dragging) return;
+      if (!this.dragging && !force) return;
       this.dragging = false;
+      this.cameraDragActive = false;
       if (this.aimActive && this.cb.isAiming()) {
         this.aimActive = false;
         this.cb.onAimEnd();
       }
     };
-    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointerup', (e) => {
+      try { el.releasePointerCapture(e.pointerId); } catch (err) { /* no capture */ }
+      endDrag(e);
+    });
     el.addEventListener('pointercancel', endDrag);
+  }
+
+  // Defensive cleanup: if the browser swallows a pointerup (scrolled out of a
+  // gesture, tab switch, window blur), the camera must not stay permanently
+  // "dragging." Same for visibility change so a backgrounded tab never orbits.
+  _bindCancelCleanup() {
+    const cancelAll = () => {
+      this.dragging = false;
+      this.cameraDragActive = false;
+      this.aimActive = false;
+      this.pointers.clear();
+      this.pinchDist = 0;
+    };
+    window.addEventListener('blur', cancelAll);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancelAll();
+    });
   }
 
   _bindSlider() {
     const zoomSlider = document.getElementById('zoom-slider');
     const zoomVal = document.getElementById('zoom-val');
-    const distFromSlider = (v) => MIN_DIST + (v / 100) * (MAX_DIST - MIN_DIST);
-    const sliderFromDist = (d) => Math.round(((d - MIN_DIST) / (MAX_DIST - MIN_DIST)) * 100);
     this._distFromSlider = distFromSlider;
     this._sliderFromDist = sliderFromDist;
     this._zoomSlider = zoomSlider;
@@ -125,6 +175,9 @@ export class CameraInput {
       if (zoomVal) zoomVal.textContent = zoomSlider.value;
       zoomSlider.addEventListener('input', () => {
         this.dist = distFromSlider(parseFloat(zoomSlider.value));
+        // keep the numeric readout honest on manual slider drags (the pinch
+        // path already does this through syncZoomSlider)
+        if (zoomVal) zoomVal.textContent = zoomSlider.value;
         this._applyCam();
       });
     }
@@ -140,6 +193,7 @@ export class CameraInput {
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') { e.preventDefault(); this.cb.onSpace(); }
       if (e.code === 'Enter' && this.cb.isAiming()) this.cb.onEnter();
+      if (e.code === 'Escape' && this.cb.isAiming()) this.cb.onCancelAim();
       if (e.code === 'KeyS') this.cb.onSlowmo();
       if (e.code === 'KeyR') this.cb.onRespawn();
     });
