@@ -14,8 +14,13 @@
 // Three.js-free, DOM-free, never mutates inputs, never throws on garbage.
 
 import { getMission, isValidMission } from '../missions/index.js';
+import { MISSION_ORDER } from './state.js';
 
 const NO_MISSION = { missionId: null, completed: false, replay: false, status: '', tone: '', progression: null };
+
+// Phase 24: computed, not hardcoded — the ladder is now 6 missions (Grazing the
+// Void moved to optional), so the final display derives from MISSION_ORDER.
+const CAMPAIGN_TITLE = `${MISSION_ORDER.length} / ${MISSION_ORDER.length} MISSIONS`;
 
 // Build the renderable plan for one finalized throw. Defensive by construction:
 // any malformed input (mission or result) collapses to a clean "failed / no
@@ -32,6 +37,7 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
       status: 'MISSION FAILED',
       tone: 'fail',
       progression: null,
+      nudge: mission.hint || '',
     };
   }
 
@@ -48,7 +54,7 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
       tone: 'final',
       progression: {
         kicker: 'CAMPAIGN',
-        title: '7 / 7 MISSIONS',
+        title: CAMPAIGN_TITLE,
         tagline: 'You conquered the black hole.',
         tone: 'final',
       },

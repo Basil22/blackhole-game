@@ -12,7 +12,7 @@
 // the spawn radius across roughly dx 180–280 (a huge flat ORBITAL region that
 // produced essentially one identical wide orbit), and the top of the drag range
 // (dx≈340–365) was dead (tangFrac clipped at 1.62 at both ends). This mapping
-// keeps the same envelope (0.35–1.62 vCirc across 340 drag units, same gesture,
+// keeps the same envelope (0.35–1.77 vCirc across 340 drag units, same gesture,
 // same exported API) but reshapes the response into a deterministic, continuous,
 // monotone curve that is LINEAR IN PERIAPSIS across the orbital band:
 //
@@ -24,7 +24,10 @@
 //                     comparable, visible amount (learnable/reproducible skill)
 //   dx 258–272     : s 1.0→√2  — the escape-triggering ramp is deliberately
 //                     SHORT, so escape is a full-power gesture you must choose
-//   dx 272–340     : s √2→1.62 — post-escape power for a comfortable BREAK FREE
+//   dx 272–340     : s √2→1.77 — post-escape power for a comfortable BREAK FREE
+//                    (tangMax raised to 1.77 so a full-width 360px mobile drag,
+//                     ~dx 306 → tangFrac ~1.59, clears the real-sim escape
+//                     threshold ~1.590 for all objects); see the tangMax note above.
 //
 // The periapsis↔s conversion is the exact orbit equation at the calibration
 // radius R: x = r_p/R, s = √(2x/(1+x)) — an object launched tangentially at
@@ -60,7 +63,15 @@ export const tangFracForRp = (rp) => {
 export const AIM_MAPPING = Object.freeze({
   // Tangential speed as a multiple of v_circ at the spawn radius.
   tangMin: 0.35,              // lowest power — held close-pass / capture
-  tangMax: 1.62,              // comfortably past escape (√2 ≈ 1.4142)
+  tangMax: 1.77,              // comfortably past escape (√2 ≈ 1.4142). Real-sim escape
+  // (with in-flight drag losses) lands ~tangFrac 1.590 — above the analytic √2
+  // threshold — so the envelope's top end is set here. This keeps the contract
+  // ("a full-width gesture reaches escape on mobile alike"): on a 360px viewport
+  // a full-width drag reaches ~dx 306 → tangFrac 1.59 → real-sim ESCAPING for
+  // every object. Previous tangMax values (1.62, 1.65) only reached escape at
+  // dx≥324 which is physically unreachable on a 360px screen (max pointer travel
+  // yields dx≈306). No physics constants change; only the mapping's post-escape
+  // ceiling is raised.
   tangSpan: 340,              // aim.dx units to sweep tangMin → tangMax
   // Radial-inward speed as a multiple of v_circ. Base 0 → a straight pull is
   // negligibly infalling; the +yBias adds the tiny outward k that reads ESCAPING.

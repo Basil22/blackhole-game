@@ -68,7 +68,8 @@ test('campaign completion displays the final plan', () => {
   assert.strictEqual(plan.status, 'CAMPAIGN COMPLETE');
   assert.strictEqual(plan.tone, 'final');
   assert.strictEqual(plan.progression.kicker, 'CAMPAIGN');
-  assert.strictEqual(plan.progression.title, '7 / 7 MISSIONS');
+  // Phase 24: the forced ladder is 6 missions (Grazing moved to optional).
+  assert.strictEqual(plan.progression.title, `${MISSION_ORDER.length} / ${MISSION_ORDER.length} MISSIONS`);
   assert.strictEqual(plan.progression.tagline, 'You conquered the black hole.');
 });
 

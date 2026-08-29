@@ -37,6 +37,10 @@ export function createAudioSystem(env = {}) {
       feedback.setMuted(m);
     },
     isMuted: () => engine.isMuted(),
+    // Phase 20 — Settings screen hooks: independent haptics ON/OFF and the
+    // settings-resolved reduced-motion decision pushed into the scaler.
+    setHapticsEnabled: (v) => haptics.setEnabled(v),
+    setHapticsReducedMotion: (v) => haptics.setReducedMotion(!!v),
     setProximity: (k) => engine.setProximity(k),
     // convenience for the game layer
     tap: (name, opts) => feedback.tap(name, opts),

@@ -247,3 +247,26 @@ test('integration: completing a simulated orbit via PLAYER_RESET completes Find 
   assert.strictEqual(fin.trajectoryState, 'ORBITAL', `telemetry state ${fin.trajectoryState}`);
   assert.strictEqual(r.completed, true, `orbit mission: ${r.reason} (state ${fin.trajectoryState})`);
 });
+
+// ----------------------------------------------------------- Phase 24 balance ---
+test('Phase 24: Break Free is reachable on a 360px viewport (drag ~dx 324 → ESCAPING)', () => {
+  // tangMax 1.62 left a full-width 360px drag (~dx 324) ~0.015 tangFrac short of
+  // the real-sim escape threshold (~1.587), making BREAK FREE impossible on 360×800.
+  // tangMax 1.65 lifts the envelope so dx 324 clears real-sim escape for all objects.
+  for (const id of ['rock', 'human', 'ship', 'planet']) {
+    const world = new BlackHoleWorld({ mu: MU, horizonRadius: H, drag: 0.1 / 1.6, despawnRadius: 560 });
+    CATALOG.find((o) => o.id === id).build(world, { x: SPAWN.x, y: SPAWN.y, z: SPAWN.z }, 1);
+    const v = aimToVelocity({ mu: MU, pos: SPAWN, dx: 324, dy: 0 });
+    for (const p of world.bodies) { p.vel.x = v.x; p.vel.y = v.y; p.vel.z = v.z; }
+    const tm = createThrowTelemetry({ world });
+    const t0 = world.time;
+    while (world.time - t0 < 40 && world.aliveCount() > 0 && tm.consumedPointCount === 0) {
+      world.step(); tm.recordStep();
+    }
+    const fin = tm.finalizeThrow(tm.consumedPointCount > 0 ? TERMINATION.ALL_MASS_CONSUMED : TERMINATION.DESPAWN);
+    assert.strictEqual(fin.trajectoryState, 'ESCAPING', `dx=324 ${id} should now escape, got ${fin.trajectoryState}`);
+    assert.strictEqual(fin.consumedPointCount, 0, `${id} consumed while escaping`);
+    const mission = getMission('escape-01');
+    assert.strictEqual(evaluateMission(mission, { telemetry: fin, score: calculateThrowScore(fin) }).completed, true, 'Break Free completes');
+  }
+});

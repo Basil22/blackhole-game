@@ -26,6 +26,17 @@
   --r-chip: 3px;
   --r-card: 2px;
 
+  /* Phase 21 — centralized button sizing system. One size per category so all
+     buttons of a kind render identically (width/height/border/alignment). */
+  --btn-icon: 44px;       /* icon buttons: audio, capture, menu */
+  --btn-min-h: 44px;      /* secondary/control text buttons: CANCEL, SETTINGS */
+  --btn-min-h-action: 48px; /* primary actions: THROW, PLAY, DONE */
+  --btn-stroke: 1.7px;    /* icon stroke width shared by the icon catalog */
+
+  /* Phase 23 — the level + mission compact card WIDTH. One clamp()/vw token,
+     no JS polling: both cards are always the same box, whatever the content. */
+  --chip-w: clamp(150px, 46vw, 180px);
+
   --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -38,6 +49,7 @@ html, body {
   -webkit-user-select: none; user-select: none;
   touch-action: none;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible { outline: 1px solid var(--ui-white); outline-offset: 2px; }
@@ -47,6 +59,23 @@ html, body {
 #vignette {
   position: fixed; inset: 0; z-index: 4; pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+  transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* Phase 20 — opening dive: a subtle monochrome exposure pulse at the edges
+   while the camera accelerates in. Purely presentational, GPU-composited,
+   one transition — zero per-frame DOM work. */
+body.intro-diving #vignette {
+  background: radial-gradient(ellipse at center, transparent 34%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.16) 70%, rgba(255, 255, 255, 0.06) 88%, rgba(255, 255, 255, 0.12) 100%);
+  box-shadow: inset 0 0 140px rgba(255, 255, 255, 0.05);
+}
+
+/* Phase 23 — as the camera approaches the settle framing, the peripheral
+   light brightens a touch (single class toggle at ~72% of the dive). It
+   never covers the black hole's center — the near radius stays dark. */
+body.intro-approach #vignette {
+  background: radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.15) 62%, rgba(255, 255, 255, 0.1) 86%, rgba(255, 255, 255, 0.2) 100%);
+  box-shadow: inset 0 0 200px rgba(255, 255, 255, 0.09);
 }
 
 /* ---------- top bar ---------- */
@@ -61,10 +90,9 @@ html, body {
 #top-bar > * { pointer-events: auto; }
 
 .title {
-  font-weight: 800; letter-spacing: 0.24em; font-size: 13px;
+  font-weight: 800; letter-spacing: 0.06em; font-size: 13px;
   color: var(--ui-white);
-  text-transform: uppercase;
-  text-indent: 0.24em; /* optically balance the tracked caps */
+  white-space: nowrap;
 }
 
 .top-right {
@@ -73,7 +101,9 @@ html, body {
   display: flex; align-items: center; gap: 6px;
 }
 
-/* ---------- buttons (shared language) ---------- */
+/* Phase 21 — centralized button system. All icon buttons share one size;
+   all control buttons share min-height 44px; primary actions get 48px. Same
+   border treatment, same hover/focus invert, same 2px radius. */
 button {
   font-family: var(--font-ui);
 }
@@ -95,26 +125,26 @@ button {
 }
 
 .icon-btn {
-  width: 44px; height: 44px;
+  width: var(--btn-icon); height: var(--btn-icon);
   display: flex; align-items: center; justify-content: center;
   padding: 0;
 }
 .icon-btn .ui-ico { flex: none; }
-/* sound toggle is the quietest control — slightly smaller so the top-right
-   cluster stays clear of the centered wordmark and the mission chip below */
-#audio-btn {
-  width: 38px; height: 38px;
+.ctrl-btn {
+  min-height: var(--btn-min-h);
+  padding: 10px 16px; font-size: 12px; font-weight: 800; letter-spacing: 0.16em;
 }
-#audio-btn.muted {
-  color: var(--ui-gray-3);
-  border-color: rgba(255, 255, 255, 0.12);
+.ctrl-btn.primary {
+  min-height: var(--btn-min-h-action);
+  border-color: var(--ui-white); color: var(--ui-white);
+  min-width: 120px; padding: 13px 24px; font-size: 13px;
 }
 
-/* ---------- help FAB (top-left) ---------- */
+/* ---------- top-left menu FAB (single information/settings access) ---------- */
 .help-fab {
   position: fixed; left: calc(12px + env(safe-area-inset-left));
   top: calc(8px + env(safe-area-inset-top));
-  width: 44px; height: 44px;
+  width: var(--btn-icon); height: var(--btn-icon);
   background: var(--ui-black);
   border: 1px solid var(--ui-border-strong); color: var(--ui-white);
   border-radius: var(--r-btn);
@@ -133,10 +163,81 @@ button {
   padding: 6px 10px calc(10px + env(safe-area-inset-bottom)) 10px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
   z-index: 10;
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+  align-items: center;
 }
+#hud > * { max-width: min(100%, 480px); width: 100%; }
 
-#picker { display: flex; gap: 8px; justify-content: center; }
+/* ---- Phase 21: object slot (collapsed picker) lives in the bottom row ---- */
+#obj-row {
+  position: relative;
+  display: flex; align-items: center;
+  min-height: 48px;
+}
+.obj-slot {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; min-width: 150px; max-width: min(60vw, 220px);
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--ui-border); border-radius: var(--r-card); color: var(--ui-gray-1);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
+  font-family: var(--font-ui);
+}
+.obj-slot:hover, .obj-slot:focus-visible { border-color: var(--ui-border-strong); color: var(--ui-white); }
+.obj-slot-icon { display: flex; align-items: center; justify-content: center; color: inherit; flex: none; }
+.obj-slot-name {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--ui-white);
+  text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.obj-slot-state {
+  flex: none; font-size: 8px; font-weight: 800; letter-spacing: 0.12em;
+  color: var(--ui-gray-2); text-transform: uppercase; white-space: nowrap;
+}
+.obj-slot-state.is-lock { color: var(--ui-gray-3); }
+
+/* Phase-21 collapsible object panel — hidden until the slot is tapped. The
+   panel opens upward above the slot: a slim head (label + a small X) over the
+   four object tiles. Closes via the X, an outside tap, a selection, or aim. */
+.obj-panel {
+  display: none;
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  gap: 6px; padding: 6px;
+  background: var(--ui-surface-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+  z-index: 18;
+}
+#obj-row.open .obj-panel { display: flex; flex-direction: column; }
+/* Phase 21 — while the object panel is open the slider cluster steps aside:
+   the dropdown would otherwise sit directly on top of it. display:none reflows
+   the HUD column, so the panel owns the freed space and outside taps always
+   land on the inert starfield behind it (which closes the panel). */
+body.obj-panel-open #size-row,
+body.obj-panel-open #zoom-row { display: none; }
+.obj-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 0 4px 0 10px;
+}
+.obj-panel-label {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.22em;
+  color: var(--ui-gray-2); text-transform: uppercase;
+}
+.obj-panel-close {
+  flex: none;
+  width: 44px; height: 44px; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--ui-border);
+  border-radius: var(--r-btn); color: var(--ui-gray-1); cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.obj-panel-close:hover, .obj-panel-close:focus-visible {
+  border-color: var(--ui-border-strong); color: var(--ui-white);
+}
+.obj-panel-close .ui-ico { display: block; }
+.obj-panel-list {
+  display: flex; gap: 8px; justify-content: center;
+}
 
 .obj-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -167,19 +268,36 @@ button {
   color: var(--ui-gray-3); line-height: 1.1;
 }
 .obj-btn.active .obj-diff { color: var(--ui-gray-2); }
+/* Phase-19 object availability — explicit text, dimmed + disabled when locked.
+   Never color alone: the state line always carries the word. */
+.obj-state {
+  font-size: 7px; font-weight: 800; letter-spacing: 0.12em;
+  color: var(--ui-gray-2); line-height: 1.1; white-space: nowrap;
+}
+.obj-state.is-lock { color: var(--ui-gray-3); }
+.obj-btn.locked {
+  opacity: 0.55; cursor: not-allowed; border-style: dashed;
+}
+.obj-btn.locked:hover { border-color: var(--ui-border); color: var(--ui-gray-2); }
+.obj-btn.locked .obj-name { color: var(--ui-gray-3); }
+.obj-btn.locked .obj-diff { color: var(--ui-gray-4); }
 
 #object-info {
   text-align: center; font-size: 10px; letter-spacing: 0.05em;
   color: var(--ui-gray-2); min-height: 14px;
 }
 
+/* Phase-21 compact SIZE→ZOOM control group — tight pairing, semantic OUT/IN
+   edges flanking the zoom track so the reversed mapping reads at a glance. */
 #size-row, #zoom-row {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   font-size: 9px; font-weight: 800; letter-spacing: 0.18em; color: var(--ui-gray-2);
 }
+#size-row { gap: 2px; }
+#zoom-row { gap: 6px; }
 #size-row label, #zoom-row label { text-transform: uppercase; }
 #size-slider, #zoom-slider {
-  width: 140px; height: 44px;
+  width: min(340px, calc(100vw - 300px)); height: 44px;
   -webkit-appearance: none; appearance: none;
   background: transparent; cursor: pointer;
 }
@@ -201,13 +319,13 @@ button {
   background: var(--ui-white); border: 1px solid var(--ui-black);
 }
 #size-val, #zoom-val { min-width: 34px; color: var(--ui-white); font-variant-numeric: tabular-nums; }
+.zoom-side {
+  flex: none; font-size: 7px; font-weight: 800; letter-spacing: 0.2em;
+  color: var(--ui-gray-3); text-transform: uppercase;
+}
 
 #bottom-controls {
   display: flex; gap: 10px; justify-content: center; align-items: center;
-}
-.ctrl-btn {
-  padding: 10px 16px; font-size: 12px; font-weight: 800; letter-spacing: 0.16em;
-  min-height: 44px;
 }
 .slowmo-btn {
   width: 46px; height: 46px; min-height: 0;
@@ -215,10 +333,9 @@ button {
   padding: 0;
 }
 .slowmo-btn .ico { display: flex; }
-.slowmo-btn .ico-rewind { display: none; }
+/* single always-visible icon; the enabled state is the white fill, never an
+   icon swap */
 .slowmo-btn.on { background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white); }
-.slowmo-btn.on .ico-play { display: none; }
-.slowmo-btn.on .ico-rewind { display: flex; }
 
 /* Phase 17 — CANCEL replaces THROW while aiming: normal [slowmo][THROW] ↔
    aiming [CANCEL]. Secondary language (black, thin border, close icon) —
@@ -232,12 +349,9 @@ button {
 .cancel-btn .ui-ico { display: block; }
 #bottom-controls.aiming #cancel-btn { display: inline-flex; }
 #bottom-controls.aiming #throw-btn,
-#bottom-controls.aiming #slowmo-btn { display: none; }
+#bottom-controls.aiming #slowmo-btn,
+#bottom-controls.aiming #obj-row { display: none; }
 
-.ctrl-btn.primary {
-  border-color: var(--ui-white); color: var(--ui-white);
-  min-width: 120px; padding: 13px 24px; font-size: 13px;
-}
 .ctrl-btn.primary.aiming {
   background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white);
   animation: aim-pulse 1.2s ease-in-out infinite;
@@ -276,6 +390,20 @@ button {
   opacity: 0; transition: opacity 0.3s; z-index: 30; pointer-events: none;
 }
 .flash.show { opacity: 1; }
+
+/* ---------- one-shot first-play intro hint ---------- */
+.intro-hint {
+  position: fixed;
+  bottom: calc(216px + env(safe-area-inset-bottom)); left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px; border-radius: var(--r-chip);
+  background: var(--ui-surface); border: 1px solid var(--ui-border-strong);
+  color: var(--ui-white);
+  font-weight: 700; font-size: 11px; letter-spacing: 0.16em;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 20;
+  white-space: nowrap;
+}
+.intro-hint.show { opacity: 1; }
 
 /* ---------- modal ---------- */
 .modal {
@@ -334,34 +462,62 @@ button {
 .tonal-special { color: var(--ui-white); font-weight: 800; }
 .tonal-danger  { color: var(--ui-white); font-weight: 800; letter-spacing: 0.06em; }
 
-/* ---------- mission chip + selector ---------- */
-.mission-chip {
+/* ---------- compact HUD cards (level chip + mission chip) ----------
+   Phase 23 — ONE shared component. The two chips are the same object:
+   identical width / height / padding / border / radius / type hierarchy /
+   row spacing / alignment, ALWAYS — content (longer mission names) can never
+   change their box. Fixed width (capped by --chip-w, a clamp()/vw token, no
+   JS viewport polling) + per-row truncation guarantee the identical box. */
+:is(.level-chip, .mission-chip) {
   position: fixed;
-  top: calc(78px + env(safe-area-inset-top)); /* below the top-bar buttons */
   right: calc(8px + env(safe-area-inset-right));
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px;
-  min-width: 0; max-width: min(46vw, 180px); min-height: 44px;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 1px;
+  width: var(--chip-w);
+  min-height: 52px; height: 52px;
   padding: 4px 12px;
   background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--r-chip);
   color: var(--ui-white); cursor: pointer; text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, transform 0.32s ease, opacity 0.32s ease;
   z-index: 14;
 }
-.mission-chip:hover, .mission-chip:active, .mission-chip:focus-visible {
+.level-chip { top: calc(78px + env(safe-area-inset-top)); }
+.mission-chip { top: calc(140px + env(safe-area-inset-top)); }
+/* Phase 21 — while a throw is live (aiming or flying) the level + mission
+   chips slide out to the right so the gameplay readouts own the screen. */
+body.gameplay-active .level-chip,
+body.gameplay-active .mission-chip {
+  transform: translateX(calc(100% + 24px));
+  opacity: 0; pointer-events: none;
+}
+:is(.level-chip, .mission-chip):hover,
+:is(.level-chip, .mission-chip):active,
+:is(.level-chip, .mission-chip):focus-visible {
   border-color: var(--ui-border-bright); background: rgba(255, 255, 255, 0.05);
 }
-.ms-kicker {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+/* shared 3-row card: kicker (label + counter), title, object. One row def. */
+:is(.lv-kicker, .ms-kicker) {
+  display: flex; align-items: center; justify-content: flex-start; gap: 8px;
   width: 100%;
   font-size: 8px; font-weight: 800; letter-spacing: 0.22em; color: var(--ui-gray-2);
   text-transform: uppercase;
 }
-.ms-counter {
+:is(.lv-counter, .ms-counter) {
+  margin-left: auto;
   font-size: 8px; font-weight: 800; letter-spacing: 0.22em; color: var(--ui-gray-3);
   font-variant-numeric: tabular-nums;
 }
-.ms-title {
+:is(.lv-label) {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.22em; color: var(--ui-gray-3);
+  text-transform: uppercase;
+}
+.lv-num { color: var(--ui-white); font-variant-numeric: tabular-nums; }
+:is(.lv-title, .ms-title) {
   font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: var(--ui-white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+:is(.lv-object, .ms-object) {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.18em; color: var(--ui-gray-2);
+  text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 
@@ -415,8 +571,7 @@ button {
 .ms-option.active { border-color: var(--ui-white); }
 .ms-close { width: 100%; min-height: 46px; }
 
-/* selected-mission challenge detail card (below the list) */
-.ms-detail {
+/* selected-mission challenge detail card (below the list) */.ms-detail {
   display: none; flex-direction: column; gap: 2px;
   margin-bottom: 14px; padding: 10px 12px;
   background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--r-card);
@@ -439,6 +594,59 @@ button {
 .ms-detail-rec.show { display: flex; }
 .ms-detail-recname { font-weight: 800; color: var(--ui-white); }
 .ms-detail-recreason { color: var(--ui-gray-2); }
+
+/* ---------- level selector modal ---------- */
+.level-modal {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  opacity: 0; pointer-events: none; transition: opacity 0.22s;
+  padding: 20px;
+}
+.level-modal.open { opacity: 1; pointer-events: auto; }
+.level-modal-box {
+  width: min(88vw, 340px); max-height: 80vh; overflow-y: auto;
+  background: var(--ui-surface-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  padding: 18px 16px 16px; text-align: center;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+}
+.lv-heading {
+  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  margin-bottom: 10px; text-transform: uppercase;
+}
+.lv-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.lv-option {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; min-height: 44px;
+  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--r-card);
+  color: var(--ui-white); cursor: pointer; text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lv-option:hover { border-color: var(--ui-border-strong); }
+.lv-option-main { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.lv-marker { width: 14px; flex: none; text-align: center; font-size: 11px; line-height: 1; color: var(--ui-gray-2); }
+.lv-state {
+  margin-left: auto; flex: none; padding-left: 8px;
+  font-size: 8px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ui-gray-3);
+}
+.lv-option-title { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; color: var(--ui-white); }
+.lv-option-object { font-size: 8px; font-weight: 800; letter-spacing: 0.18em; color: var(--ui-gray-2); }
+.lv-option-desc { font-size: 11px; color: var(--ui-gray-2); padding-left: 21px; line-height: 1.4; }
+/* campaign progression states — text + border, never color */
+.lv-option.locked { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+.lv-option.locked:hover { border-color: var(--ui-border); background: var(--ui-black); }
+.lv-option.locked .lv-option-title { color: var(--ui-gray-3); }
+.lv-option.locked .lv-state { color: var(--ui-gray-3); }
+.lv-option.completed { border-color: var(--ui-border); }
+.lv-option.completed .lv-marker { color: var(--ui-gray-1); }
+.lv-option.completed .lv-state { color: var(--ui-gray-2); }
+.lv-option.current { border-color: var(--ui-border-bright); background: rgba(255, 255, 255, 0.06); }
+.lv-option.current .lv-marker { color: var(--ui-white); }
+.lv-option.current .lv-state { color: var(--ui-white); font-weight: 800; }
+.lv-option.active { border-color: var(--ui-white); }
+.lv-close { width: 100%; min-height: 46px; }
 
 /* ---------- throw result ---------- */
 #result-scrim {
@@ -464,6 +672,13 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   opacity: 1; pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
 }
+.rs-close {
+  position: absolute; top: 6px; right: 6px;
+  width: 44px; height: 44px;
+  min-width: 44px; min-height: 44px;
+  z-index: 1;
+}
+.rs-close .ui-ico { display: block; }
 .rs-object {
   font-size: 10px; letter-spacing: 0.3em; font-weight: 700; color: var(--ui-gray-3);
   text-transform: uppercase;
@@ -511,6 +726,13 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .rs-mission-title {
   font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: var(--ui-white); margin-top: 2px;
 }
+.rs-nudge {
+  display: none;
+  font-size: 10px; letter-spacing: 0.04em; color: var(--ui-gray-2);
+  margin-top: 6px; line-height: 1.4;
+  font-style: italic;
+}
+.rs-nudge.show { display: block; }
 /* campaign progression line (new unlock / campaign end only) */
 .rs-progression {
   display: none;
@@ -560,29 +782,224 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   .rs-total { font-size: 34px; }
   .rs-headline { font-size: 19px; }
   #result { padding: 16px 16px 14px; }
-  /* 3-button top-right cluster must clear the centered wordmark on narrow
-     screens: keep the 44px share/photo touch targets, slim only the quiet
-     audio toggle, tighten the gap, and scale the wordmark down + ellipsis. */
+  /* the single capture button must clear the centered wordmark on narrow
+     screens. Touch targets stay ≥44px; only the cluster gap and the wordmark
+     compress. Pascal-case "Black Hole" never ellipsizes — it just scales. */
   .top-right { gap: 4px; }
-  .top-right .icon-btn { width: 40px; height: 40px; }
-  #audio-btn { width: 36px; height: 36px; }
-  .title {
-    font-size: 10px; letter-spacing: 0.12em;
-    max-width: 76px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  }
+  .title { font-size: 12px; }
 }
 
 /* ---------- Phase 17: responsive gameplay controls ---------- */
 /* Small screens: compress the HUD cluster so the SIZE→ZOOM slider band reads
-   as one compact group (the former 6px uniform gap read as dead space) while
-   keeping every touch target ≥44px and the home-indicator safe area. Sliders
-   widen a touch so the rows fill the screen instead of drifting toward center. */
+   as one compact group while keeping every touch target ≥44px and the home-
+   indicator safe area. Sliders widen a touch so the rows fill the screen
+   instead of drifting toward center. */
 @media (max-width: 480px) {
   #hud { gap: 4px; padding: 4px 8px calc(8px + env(safe-area-inset-bottom)) 8px; }
   #size-row, #zoom-row { gap: 6px; }
   #size-slider, #zoom-slider { width: min(44vw, 176px); height: 44px; }
   .obj-btn { min-height: 48px; padding: 4px 4px 5px; }
   #object-info { min-height: 12px; }
+  /* Phase 24 — on phones the object dropdown is a centered menu: a fixed
+     dialog floating in the middle of the screen with the four objects
+     stacked one below the other. It is never anchored to the slot, so it
+     can never spill off screen. Closes via its X, an outside tap, a
+     selection, or aim (unchanged). */
+  .obj-panel {
+    position: fixed; top: 50%; left: 50%; right: auto; bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(84vw, 320px); max-height: 72vh; overflow-y: auto;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+  }
+  .obj-panel-list { flex-direction: column; align-items: stretch; gap: 6px; }
+  .obj-btn {
+    flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px;
+    width: 100%; min-height: 48px; padding: 8px 10px; text-align: left;
+  }
+  .obj-icon { width: 22px; height: 22px; margin: 0; flex: none; }
+  .obj-name { flex: 1 1 auto; text-align: left; }
+  .obj-state, .obj-diff { flex: none; }
+  /* Phase 23 — the shared card width token narrows on phones (both cards,
+     always identical). */
+  :root { --chip-w: clamp(136px, 52vw, 176px); }
+}
+
+/* Phase 24 — the object menu is one column on phones, so the old 2×2 grid
+   fallback is gone; the column list above already fits every narrow width. */
+
+/* Phase 21 — short landscape phones: the persistent HUD wins vertical space;
+   hide only the optional object description line, which is duplicated by the
+   slot itself. */
+@media (orientation: landscape) and (max-height: 440px) {
+  #object-info { display: none; }
+}
+
+/* ---------- Phase 20: opening / title screen ---------- */
+#opening {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  /* Phase 23 — center inside the usable viewport: safe-area insets plus a
+     minimum breathing rule. One flex centering, no magic offsets. */
+  padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+           calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  background: rgba(0, 0, 0, 0.93);
+  opacity: 1; pointer-events: auto;
+  transition: opacity 0.42s ease;
+}
+#opening.leaving { opacity: 0; pointer-events: none; }
+#opening.hidden { display: none; }
+
+.opening-box {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  text-align: center; padding: 24px;
+  width: min(92vw, 420px); max-width: 92vw; margin: 0 auto;
+}
+/* Phase 24 — PLAY and SETTINGS are ONE centered stack on every screen:
+   identical width and alignment on PC and mobile (they share the design
+   system tokens: PLAY = primary 48px, SETTINGS = ctrl 44px). They are
+   always stacked vertically and never side-by-side or platform-dependent. */
+.opening-box .ctrl-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: min(72vw, 220px);
+}
+.opening-brand {
+  color: var(--ui-white);
+  font-size: clamp(30px, 7vw, 44px);
+  font-weight: 800; letter-spacing: 0.24em; text-indent: 0.24em;
+  text-transform: uppercase; line-height: 1.05;
+}
+.opening-sub {
+  color: var(--ui-gray-2);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.52em; text-indent: 0.52em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+/* Phase 23 — every opening control IS the shared design-system button:
+   PLAY uses the same primary token as THROW, SETTINGS the same secondary
+   token as CANCEL. No bespoke opening-button geometry. */
+.opening-hint {
+  color: var(--ui-gray-3);
+  font-size: 10px; letter-spacing: 0.08em; line-height: 1.5;
+  max-width: 240px;
+  opacity: 1; transition: opacity 0.25s ease;
+}
+.opening-hint.hide { opacity: 0; }
+
+/* ---------- Phase 20: settings modal ---------- */
+.settings-modal {
+  position: fixed; inset: 0; z-index: 70;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  opacity: 0; pointer-events: none; transition: opacity 0.22s;
+  padding: 20px;
+}
+.settings-modal.open { opacity: 1; pointer-events: auto; }
+.settings-modal-box {
+  width: min(88vw, 360px); max-height: 82vh; overflow-y: auto;
+  background: var(--ui-surface-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  padding: 18px 16px 16px; text-align: left;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+}
+.st-heading {
+  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  margin-bottom: 12px; text-transform: uppercase;
+}
+.st-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.set-row {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 8px 12px; min-height: 56px;
+  background: var(--ui-black); border: 1px solid var(--ui-border);
+  border-radius: var(--r-card);
+}
+.set-row.set-on { border-color: var(--ui-border-strong); }
+.set-row-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.set-label {
+  color: var(--ui-white);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.set-toggle {
+  flex: none;
+  min-width: 76px; min-height: 44px;
+  background: var(--ui-black); border: 1px solid var(--ui-border-strong); border-radius: var(--r-btn);
+  color: var(--ui-gray-2);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.set-toggle:hover, .set-toggle:focus-visible {
+  border-color: var(--ui-border-bright);
+}
+.set-toggle.on {
+  background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white);
+}
+.set-desc {
+  color: var(--ui-gray-2);
+  font-size: 10px; letter-spacing: 0.04em; line-height: 1.35;
+}
+.st-close { width: 100%; min-height: 46px; }
+
+/* ---------- Phase 21: top-left menu modal ----------
+   Single access point for help + settings. Row surfaces reuse the menu-
+   option language (48px rows, monochrome, 2px radius) so the whole menu is
+   one consistent control category. */
+.menu-modal {
+  position: fixed; inset: 0; z-index: 70;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  opacity: 0; pointer-events: none; transition: opacity 0.22s;
+  padding: 20px;
+}
+.menu-modal.open { opacity: 1; pointer-events: auto; }
+.menu-modal-box {
+  width: min(88vw, 320px); max-height: 82vh; overflow-y: auto;
+  background: var(--ui-surface-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  padding: 18px 16px 16px; text-align: left;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
+}
+.mn-heading {
+  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  margin-bottom: 12px; text-transform: uppercase;
+}
+.mn-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.menu-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 48px; padding: 8px 12px;
+  background: var(--ui-black); border: 1px solid var(--ui-border);
+  border-radius: var(--r-card); color: var(--ui-white); cursor: pointer; text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.menu-row:hover, .menu-row:focus-visible { border-color: var(--ui-border-strong); background: rgba(255, 255, 255, 0.05); }
+.menu-row-icon { flex: none; display: flex; align-items: center; justify-content: center; color: var(--ui-gray-1); }
+.menu-row-icon .ui-ico { display: block; }
+.menu-row-title {
+  font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ui-white);
+}
+.menu-row-sub {
+  display: block; font-size: 10px; letter-spacing: 0.04em;
+  color: var(--ui-gray-2); margin-top: 1px;
+}
+.menu-row-label { display: flex; flex-direction: column; min-width: 0; }
+.mn-close { width: 100%; min-height: 46px; }
+
+@media (max-width: 480px) {
+  .opening-box { gap: 12px; }
+  .opening-sub { letter-spacing: 0.4em; text-indent: 0.4em; }
+  .opening-hint { max-width: 210px; }
+}
+
+/* ---------- Phase 20: opening dive exposure (reduced-motion safe) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  body.intro-diving #vignette,
+  body.intro-approach #vignette {
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+    box-shadow: none;
+  }
 }
 
 /* ---------- reduced motion: kill all transitions/animations ---------- */

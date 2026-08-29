@@ -56,20 +56,32 @@ export class ResultPanel {
     this.missionStatusEl.className = 'rs-mission-status';
     this.missionTitleEl = document.createElement('div');
     this.missionTitleEl.className = 'rs-mission-title';
-    // optional campaign line (only on a NEW unlock / campaign end)
-    this.progressionEl = document.createElement('div');
-    this.progressionEl.className = 'rs-progression';
-    this.progKickerEl = document.createElement('div');
-    this.progKickerEl.className = 'rs-prog-kicker';
-    this.progTitleEl = document.createElement('div');
-    this.progTitleEl.className = 'rs-prog-title';
-    this.progTaglineEl = document.createElement('div');
-    this.progTaglineEl.className = 'rs-prog-tagline';
-    // Phase-10: optional NEXT CHALLENGE hint under the unlock (declarative text)
-    this.progHintEl = document.createElement('div');
-    this.progHintEl.className = 'rs-prog-hint';
-    this.progressionEl.append(this.progKickerEl, this.progTitleEl, this.progTaglineEl, this.progHintEl);
-    this.missionEl.append(this.missionStatusEl, this.missionTitleEl, this.progressionEl);
+    // optional campaign line (only on a NEW unlock / campaign end). Up to
+    // CAMPAIGN_BLOCKS blocks are pre-built once: a single throw can complete
+    // several levels in a cascade (required-mission sets overlap legitimately).
+    this.nudgeEl = document.createElement('div');
+    this.nudgeEl.className = 'rs-nudge';
+
+    this.progressionWrap = document.createElement('div');
+    this.progressionWrap.className = 'rs-progression-wrap';
+    this.progBlocks = [];
+    for (let i = 0; i < 4; i++) {
+      const el = document.createElement('div');
+      el.className = 'rs-progression';
+      el.style.display = 'none';
+      const kicker = document.createElement('div');
+      kicker.className = 'rs-prog-kicker';
+      const title = document.createElement('div');
+      title.className = 'rs-prog-title';
+      const tagline = document.createElement('div');
+      tagline.className = 'rs-prog-tagline';
+      const hint = document.createElement('div');
+      hint.className = 'rs-prog-hint';
+      el.append(kicker, title, tagline, hint);
+      this.progressionWrap.appendChild(el);
+      this.progBlocks.push({ el, kicker, title, tagline, hint });
+    }
+    this.missionEl.append(this.missionStatusEl, this.missionTitleEl, this.nudgeEl, this.progressionWrap);
 
     const rows = document.createElement('div');
     rows.className = 'rs-rows';
@@ -83,22 +95,30 @@ export class ResultPanel {
       this.rowEls.push({ key, el: row, scoreEl: row.querySelector('.rs-row-score') });
     }
 
+    const close = document.createElement('button');
+    close.className = 'icon-btn rs-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close result');
+    close.innerHTML = '<svg class="ui-ico" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/></svg>';
+    close.addEventListener('click', () => this.hide());
+
     const again = document.createElement('button');
     again.className = 'ctrl-btn primary rs-again';
     again.type = 'button';
     again.textContent = 'THROW AGAIN';
     again.addEventListener('click', () => this.onAgain());
 
-    el.append(this.objEl, this.headEl, this.totalLineEl, this.missionEl, rows, again);
+    el.append(close, this.objEl, this.headEl, this.totalLineEl, this.missionEl, rows, again);
   }
 
   // Show a result from finalized telemetry + score (plain pass-through display).
   // `missionView` is the optional mission presentation { title, status, tone } —
   // the status text is the flow planner's decision, never recomputed here.
-  // `progressionView` is the optional campaign line
-  // ({ kicker, title, tagline, tone }) — rendered only when something new
-  // happened (a real unlock or campaign end).
-  show(telemetry, score, objectName, missionView, progressionView) {
+  // `progressionView` is the optional campaign line ({ kicker, title, tagline,
+  // tone }) for a NEW mission unlock / campaign end. `campaignRewards` is an
+  // optional ARRAY of level-complete rewards ({ kicker, title, tagline, tone,
+  // hint }); when present it takes precedence over progressionView.
+  show(telemetry, score, objectName, missionView, progressionView, campaignRewards) {
     const token = ++this._token;
     cancelAnimationFrame(this._raf);
     const pres = presentResult(telemetry, score);
@@ -116,22 +136,22 @@ export class ResultPanel {
       this.missionStatusEl.textContent = missionView.status;
       this.missionStatusEl.className = `rs-mission-status rs-${missionView.tone || ''}`;
       this.missionTitleEl.textContent = missionView.title;
-      // campaign line: rendered ONLY when the planner produced one
-      if (progressionView && progressionView.kicker) {
-        this.progKickerEl.textContent = progressionView.kicker;
-        this.progTitleEl.textContent = progressionView.title || '';
-        this.progTaglineEl.textContent = progressionView.tagline || '';
-        this.progHintEl.textContent = progressionView.hint || '';
-        this.progHintEl.classList.toggle('show', !!progressionView.hint);
-        this.progressionEl.className = `rs-progression show rs-prog-${progressionView.tone || ''}`;
+      // Part I: show a contextual nudge when the mission failed
+      const nudge = missionView.nudge || '';
+      if (missionView.tone === 'fail' && nudge) {
+        this.nudgeEl.textContent = nudge;
+        this.nudgeEl.classList.add('show');
       } else {
-        this.progressionEl.className = 'rs-progression';
-        this.progHintEl.classList.remove('show');
+        this.nudgeEl.textContent = '';
+        this.nudgeEl.classList.remove('show');
       }
+      this._renderProgression(progressionView, campaignRewards);
       this.missionEl.classList.add('show');
     } else {
       this.missionEl.classList.remove('show');
-      this.progressionEl.className = 'rs-progression';
+      this.nudgeEl.textContent = '';
+      this.nudgeEl.classList.remove('show');
+      this._renderProgression(null, null);
     }
 
     // Row values are the scorer's own numbers, written immediately.
@@ -157,11 +177,53 @@ export class ResultPanel {
     }
   }
 
+  // Fill the pre-built progression blocks. Campaign rewards (level completes)
+  // win over the single mission-unlock line. Defensive: unknown structures
+  // render nothing.
+  _renderProgression(progressionView, campaignRewards) {
+    for (const b of this.progBlocks) {
+      b.hint.classList.remove('show');
+      b.el.style.display = 'none';
+      b.el.className = 'rs-progression';
+    }
+    const rewards = Array.isArray(campaignRewards) ? campaignRewards : null;
+    if (rewards && rewards.length) {
+      rewards.slice(0, this.progBlocks.length).forEach((r, i) => {
+        if (!r || typeof r !== 'object') return;
+        const b = this.progBlocks[i];
+        b.kicker.textContent = r.kicker || '';
+        b.title.textContent = r.title || '';
+        b.tagline.textContent = r.tagline || '';
+        b.hint.textContent = r.hint || '';
+        b.hint.classList.toggle('show', !!r.hint);
+        b.el.style.display = '';
+        b.el.className = `rs-progression show rs-prog-${r.tone || ''}`;
+      });
+      return;
+    }
+    if (progressionView && progressionView.kicker) {
+      const b = this.progBlocks[0];
+      b.kicker.textContent = progressionView.kicker;
+      b.title.textContent = progressionView.title || '';
+      b.tagline.textContent = progressionView.tagline || '';
+      b.hint.textContent = progressionView.hint || '';
+      b.hint.classList.toggle('show', !!progressionView.hint);
+      b.el.style.display = '';
+      b.el.className = `rs-progression show rs-prog-${progressionView.tone || ''}`;
+    }
+  }
+
   hide() {
     this._token++;
     cancelAnimationFrame(this._raf);
     this.el.classList.remove('open');
     document.body.classList.remove('result-open');
+    this.totalEl.textContent = '0';
+    this.headEl.textContent = '';
+    this.objEl.textContent = '';
+    this.missionEl.classList.remove('show');
+    this.nudgeEl.classList.remove('show');
+    this._revealRows(0);
   }
 
   // cosmetic count-up on the total + staggered row reveal; stale tokens cancel

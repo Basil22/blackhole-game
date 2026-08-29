@@ -13,19 +13,27 @@
   <div id="canvas-container"></div>
   <div id="vignette"></div>
 
+  <!-- Phase 20: opening / title experience -->
+  <div id="opening" role="group" aria-label="BLACK HOLE — title screen">
+    <div class="opening-box">
+      <h1 class="opening-brand">BLACK HOLE</h1>
+      <p class="opening-sub">SPACE STUDIO</p>
+      <button id="opening-play" class="ctrl-btn primary opening-play" type="button">PLAY</button>
+      <button id="opening-settings" class="ctrl-btn opening-settings" type="button" aria-label="Open settings">SETTINGS</button>
+      <p id="opening-skip-hint" class="opening-hint">Want to skip the intro? Enable Skip Intro in Settings.</p>
+    </div>
+  </div>
+
   <!-- top bar -->
   <div id="top-bar">
-    <div class="title" aria-label="BLACK HOLE"><span data-brand>BLACK HOLE</span></div>
+    <div class="title" aria-label="Black Hole"><span data-brand>Black Hole</span></div>
     <div class="top-right">
-      <button id="audio-btn" class="icon-btn" title="Sound" aria-label="Mute sound"></button>
-      <button id="share-btn" class="icon-btn" title="Share capture" aria-label="Share capture"><svg class="ui-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M12 3 V15 M12 3 L7 8 M12 3 L17 8 M6 13.5 V19 H18 V13.5"/></svg></button>
       <button id="photo-btn" class="icon-btn" title="Capture frame" aria-label="Capture frame"><svg class="ui-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M4 8.5 h4.2 L10.4 5.8 h3.2 L15.8 8.5 H20 V18.5 H4 Z M12 12.4 a2.6 2.6 0 1 0 0.001 0 Z"/></svg></button>
     </div>
   </div>
 
   <!-- HUD bottom -->
   <div id="hud">
-    <div id="picker"></div>
     <div id="size-row">
       <label for="size-slider">SIZE</label>
       <input id="size-slider" type="range" min="0.3" max="10" step="0.1" value="1" />
@@ -33,14 +41,19 @@
     </div>
     <div id="zoom-row">
       <label for="zoom-slider">ZOOM</label>
+      <span class="zoom-side" aria-hidden="true">OUT</span>
       <input id="zoom-slider" type="range" min="0" max="100" step="1" value="10" />
+      <span class="zoom-side" aria-hidden="true">IN</span>
       <span id="zoom-val">61</span>
     </div>
     <div id="object-info" class="hint"></div>
     <div id="bottom-controls">
+      <div id="obj-row">
+        <button id="obj-slot" class="obj-slot" type="button" aria-haspopup="menu" aria-expanded="false"></button>
+        <div id="picker" class="obj-panel" role="menu" aria-label="Choose object"></div>
+      </div>
       <button id="slowmo-btn" class="ctrl-btn slowmo-btn" title="Slow motion" aria-label="Toggle slow motion">
-        <span class="ico ico-play"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M8 4.5 L18.5 12 L8 19.5 Z"/></svg></span>
-        <span class="ico ico-rewind"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M7.5 5 V19 M7.5 12 L12 8.6 V15.4 Z M13.5 12 L18 8.6 V15.4 Z"/></svg></span>
+        <span class="ico"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M7.5 5 V19 M7.5 12 L12 8.6 V15.4 Z M13.5 12 L18 8.6 V15.4 Z"/></svg></span>
       </button>
       <button id="throw-btn" class="ctrl-btn primary">THROW</button>
       <button id="cancel-btn" class="ctrl-btn cancel-btn" type="button" title="Cancel aiming" aria-label="Cancel aiming">
@@ -50,21 +63,40 @@
     </div>
   </div>
 
-  <button id="help-open" class="help-fab" title="How to play" aria-label="How to play"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M9.8 9.2 a2.2 2.2 0 1 1 3 2.1 c-.9.4-1.4 1-1.4 2.3 M12 17.2 v.1"/></svg></button>
+  <!-- top-left menu (information / settings access) -->
+  <button id="menu-btn" class="help-fab" title="Menu" aria-label="Menu"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M4 7 H20 M4 12 H20 M4 17 H20"/></svg></button>
 
   <div id="readout" class="readout"></div>
   <div id="flash" class="flash"></div>
+  <div id="intro-hint" class="intro-hint" aria-hidden="true">DRAG TO AIM · RELEASE TO THROW</div>
 
   <!-- compact aiming HUD (secondary; trajectory line stays primary) -->
   <div id="guidance-hud" class="hud-chip" aria-live="polite">
     <span class="gh-state tonal-neutral"></span><span class="gh-dist"></span>
   </div>
 
+  <!-- compact campaign-level chip (static; opened by tapping) -->
+  <button id="level-chip" class="level-chip" type="button" aria-haspopup="dialog" aria-label="Campaign level">
+    <span class="lv-kicker"><span class="lv-label">LEVEL</span><span class="lv-num">1</span><span class="lv-counter">1 / 4</span></span>
+    <span class="lv-title">FIRST CONTACT</span>
+    <span class="lv-object">ASTEROID</span>
+  </button>
+
   <!-- compact current-mission chip (static; opened by tapping) -->
   <button id="mission-chip" class="mission-chip" type="button" aria-haspopup="dialog" aria-label="Current mission">
     <span class="ms-kicker"><span>MISSION</span><span class="ms-counter"></span></span>
     <span class="ms-title"></span>
+    <span class="ms-object"></span>
   </button>
+
+  <!-- level selector (lightweight modal) -->
+  <div id="level-modal" class="level-modal" role="dialog" aria-modal="true" aria-label="Campaign levels">
+    <div class="level-modal-box">
+      <h2 class="lv-heading">CAMPAIGN</h2>
+      <div class="lv-list"></div>
+      <button class="ctrl-btn primary lv-close" type="button">DONE</button>
+    </div>
+  </div>
 
   <!-- mission selector (lightweight modal) -->
   <div id="mission-modal" class="mission-modal" role="dialog" aria-modal="true" aria-label="Choose mission">
@@ -92,12 +124,59 @@
         <li><b>3.</b> Release to fling it toward the hole</li>
         <li><b>4.</b> Tap <b>SLOW-MO</b> to watch the stretch and tears in slow motion</li>
         <li><b>5.</b> Drag empty space to orbit the camera, pinch to zoom</li>
-        <li><b>6.</b> Capture a frame, or share it</li>
+        <li><b>6.</b> Capture a frame with the camera button</li>
       </ul>
       <p class="phys"><b>THE PHYSICS:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
       <button id="help-close" class="ctrl-btn primary">LET'S GO</button>
     </div>
   </div>
+
+  <!-- Phase 20: settings modal (rows built by js/game/settingsui.js) -->
+  <div id="settings-modal" class="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="settings-modal-box">
+      <h2 class="st-heading">SETTINGS</h2>
+      <div class="st-list" id="setting-rows"></div>
+      <button id="settings-close" class="ctrl-btn primary st-close" type="button">DONE</button>
+    </div>
+  </div>
+
+  <!-- Phase 21: menu (information + settings access; rows built by js/game/ui.js) -->
+  <div id="menu-modal" class="menu-modal" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="menu-modal-box">
+      <h2 class="mn-heading">MENU</h2>
+      <div class="mn-list">
+        <button id="menu-help" class="menu-row" type="button"></button>
+        <button id="settings-open" class="menu-row" type="button"></button>
+      </div>
+      <button id="menu-close" class="ctrl-btn primary mn-close" type="button">DONE</button>
+    </div>
+  </div>
+
+  <!-- Phase 26b: Android diagnostics — surfaces any load/runtime error on the
+       device screen so headless(ish) APK testing can report what actually failed. -->
+  <script>
+    window.__errors = [];
+    window.onerror = function (msg, src, line, col, err) {
+      window.__errors.push(String(msg) + (line ? ' @' + line + ':' + col : ''));
+      _showErr('ERROR: ' + msg + (line ? ' @' + line + ':' + col : ''));
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function (e) {
+      var m = (e && e.reason && (e.reason.message || e.reason)) || 'unhandled rejection';
+      window.__errors.push(String(m));
+      _showErr('UNHANDLED: ' + m);
+    });
+    function _showErr(text) {
+      var el = document.getElementById('__err');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = '__err';
+        el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;padding:10px;background:#700;color:#fff;font:12px monospace;white-space:pre-wrap;';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.textContent = (el.textContent ? el.textContent + '\n' : '') + text;
+    }
+  </script>
 
   <script src="js/vendor-three.min.js"></script>
   <script type="module" src="js/main.js"></script>

@@ -138,8 +138,9 @@ test('cancel button: CSS hides it by default and shows it ONLY in the aiming row
 
 test('cancel button: secondary visual language — no red, no pill, thin border, 44px+ target', () => {
   assert.match(cssSrc, /\.cancel-btn\s*\{[^}]*border-color:\s*var\(--ui-border-strong\);/);
-  // inherits .ctrl-btn min-height 44px (kept ≥44)
-  assert.match(cssSrc, /\.ctrl-btn\s*\{[^}]*min-height:\s*44px/);
+  // Phase 21: inherits .ctrl-btn min-height via the shared sizing token (44px)
+  assert.match(cssSrc, /\.ctrl-btn\s*\{[^}]*min-height:\s*var\(--btn-min-h\)/);
+  assert.match(cssSrc, /--btn-min-h:\s*44px/);
   assert.doesNotMatch(cssSrc, /#cancel-btn[^{]*\{[^}]*#f\w{2}|#cancel-btn[^{]*\{[^}]*red/i);
 });
 
