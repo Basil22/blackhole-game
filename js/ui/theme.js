@@ -1,13 +1,14 @@
-// ui/theme.js — centralized monochrome visual identity + branding source.
+// ui/theme.js — centralized cartoon visual identity + branding source
+// (Phase 30). Single source of truth for the game's presentation tokens:
+// brand name, the fixed 7-color cartoon palette, rounded radius scale and the
+// cartoony UI font stack. Pure data — no imports, no DOM, no physics/game-
+// engine references, so it is trivially unit-testable and dead-code-free in
+// node.
 //
-// Single source of truth for the game's presentation tokens: brand name,
-// strictly-grayscale color palette, hard-edged radius scale and the UI font
-// stack. Pure data — no imports, no DOM, no physics/game-engine references,
-// so it is trivially unit-testable and dead-code-free in node.
-//
-// The wordmark is intentionally typography-based (uppercase geometric sans,
-// white on black) — no logo artwork. UI components read these tokens directly
-// while css/style.css mirrors the same values as CSS custom properties.
+// The wordmark is uppercase type-driven; UI components read these tokens
+// directly while css/style.css mirrors the same values as CSS custom
+// properties. Color never carries a state alone — the state text is always
+// present beside it.
 
 export const BRAND = Object.freeze({
   name: 'BLACK HOLE',
@@ -15,36 +16,50 @@ export const BRAND = Object.freeze({
   tagline: 'NEWTONIAN SPAGHETTIFICATION SANDBOX',
 });
 
-// Strictly grayscale. Every hex is a neutral gray; every rgba is a white/black
-// alpha ramp. No hue channel anywhere.
+// Phase 30 — cartoon palette (was strictly grayscale). Fixed meanings:
+//   orange  — primary energy / explosions
+//   yellow  — highlights / bursts (also the aim + primary action)
+//   blue    — cold contrast / chrome accents
+//   magenta — comedic absurdity
+//   green   — success / unlock
+//   ink     — Licorice outline / hard shadows behind panels
+//   white   — Paper Cream panel + word background
 export const COLORS = Object.freeze({
-  black: '#000000',
-  ink: '#050505',
-  surface: 'rgba(0,0,0,0.88)',
-  surfacePanel: 'rgba(8,8,8,0.97)',
-  surfaceRaised: 'rgba(16,16,16,0.92)',
-  white: '#ffffff',
-  offWhite: '#f2f2f2',
-  gray1: '#d8d8d8',
-  gray2: '#a0a0a0',
-  gray3: '#666666',
-  gray4: '#333333',
-  dim: '#8f8f8f',
-  border: 'rgba(255,255,255,0.18)',
-  borderStrong: 'rgba(255,255,255,0.4)',
+  orange: '#FF6B1A',
+  yellow: '#FFE135',
+  blue: '#4AC6FF',
+  magenta: '#FF3D8A',
+  green: '#4CD97B',
+  ink: '#1A1A1A',
+  white: '#FFF8EC',
+  accent: '#FF6B1A', // generic emphasis alias (Cadmium Orange)
+  // Dark-but-not-black panel surfaces keep panels legible without PURE ink:
+  surface: 'rgba(12,8,22,0.92)',
+  surfacePanel: 'rgba(13,9,24,0.97)',
+  surfaceRaised: 'rgba(21,16,34,0.92)',
+  border: 'rgba(255,248,236,0.18)',
+  borderStrong: 'rgba(76,198,255,0.55)',
 });
 
-// Deliberate hard-edged radius system (2–4 px, nothing pill/capsule).
+// Rounded cartoon radius system (0 px, sharp).
 export const RADIUS = Object.freeze({
-  button: '2px',
-  panel: '3px',
-  chip: '3px',
-  card: '2px',
-  input: '2px',
+  button: '0px',
+  panel: '0px',
+  chip: '0px',
+  card: '0px',
+  input: '0px',
 });
 
 export const TYPO = Object.freeze({
-  stack: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  stack: "'Luckiest Guy', Impact, 'Arial Black', sans-serif",
+});
+
+// The black-hole ramps used by the renderer in one place (extra tokens are
+// fine here — renderers import this module, never the DOM).
+export const BH_COLORS = Object.freeze({
+  core: '#2D0A4E', // deep indigo
+  mid: '#FF3D8A',  // bubblegum magenta
+  rim: '#FFE135',  // canary
 });
 
 // Tiny DOM hook: repoint document.title + any [data-brand] element at the

@@ -4,7 +4,7 @@
 // scoring_integration.test.js.
 import assert from 'node:assert';
 import { test } from '../physics/support.js';
-import { calculateThrowScore } from '../../js/game/scoring/index.js';
+import { calculateThrowScore, SCORING_CONFIG } from '../../js/game/scoring/index.js';
 import { makeTelemetry } from './scoring_helpers.js';
 
 const score = (telemetry) => calculateThrowScore(telemetry);
@@ -30,7 +30,7 @@ test('perfect near miss: very high precision + positive survival + bonus', () =>
   assert.ok(r.bonus.nearHorizonSurvival.score > 0, 'bonus awarded');
   assert.strictEqual(r.categories.precision.score + r.categories.tidal.score +
     r.categories.destruction.score + r.categories.survival.score + r.categories.orbital.score +
-    r.bonus.nearHorizonSurvival.score, r.total, 'breakdown sums to total');
+    r.bonus.nearHorizonSurvival.score + r.bonus.escapeSurvival.score, r.total, 'breakdown sums to total');
 });
 
 test('distant escape: low score', () => {
@@ -134,8 +134,9 @@ test('category caps: normalized 1 exactly hits each cap, never exceeds it', () =
   // exp-damped precision just outside the horizon rounds up to its own cap
   assert.strictEqual(r.categories.precision.score, 3000);
   assert.ok(r.bonus.nearHorizonSurvival.score <= 600);
+  assert.ok(r.bonus.escapeSurvival.score <= 800, 'escape bonus is bounded');
   assert.ok(r.total <= r.maxTotal, `total ${r.total} <= maxTotal ${r.maxTotal}`);
-  assert.strictEqual(r.maxTotal, 10600);
+  assert.strictEqual(r.maxTotal, 11400);  // 10000 categories + 600 near-horizon + 800 escape (Phase 29)
 });
 
 test('object independence: identical physics, different kind field → identical score', () => {
@@ -154,4 +155,50 @@ test('more tears does not reduce destruction; consumption-only object still reap
   const whole = score(makeTelemetry({ tearCount: 0, consumedPointCount: 8, terminationReason: 'ALL_MASS_CONSUMED' }));
   assert.ok(whole.categories.destruction.score > 0, 'tearless swallow has some credit');
   assert.ok(whole.categories.destruction.normalized <= 0.25);
+});
+
+// -------------------------------------------------------- Phase 29 escape bonus ----
+// Launch snapshot lives under telemetry.initial ({speed,distance}) — build a
+// finalized-shaped throw with a chosen initial speed multiple of the escape
+// velocity at the spawn radius (R ≈ 384.5), vCorr the telemetry only records.
+const escapeVr = (velocityRatio) => {
+  const vEsc = Math.sqrt(2 * SCORING_CONFIG.mu / 384.5);
+  return makeTelemetry({
+    initial: { ...makeTelemetry().initial, speed: vEsc * velocityRatio },
+  });
+};
+
+test('escape bonus: a rim-threading escape is rewarded, a full-power fling never is', () => {
+  // Launch speed just past the measured real escape threshold (velocityRatio ≈ 1.135);
+  // this is THE hard skill the game now pays — escape starts at 250 of 340 drag units.
+  const rim = score(escapeVr(1.135));
+  assert.ok(rim.bonus.escapeSurvival.eligible, 'rim escape eligible');
+  assert.ok(rim.bonus.escapeSurvival.normalized > 0.97,
+    `rim escape should be near-full credit, got ${rim.bonus.escapeSurvival.normalized.toFixed(3)}`);
+  assert.ok(rim.bonus.escapeSurvival.score >= 700, `escape must be score-visible, got ${rim.bonus.escapeSurvival.score}`);
+  // A full-power fling (ratio 1.45, way past the ceiling) never skimmed the rim —
+  // it's an escape, but blasé. Zero credit, still bounded.
+  const fling = score(escapeVr(1.45));
+  assert.ok(fling.bonus.escapeSurvival.eligible, 'a fling is still an escape…');
+  assert.strictEqual(fling.bonus.escapeSurvival.score, 0,
+    '…but it is not brave: the escape bonus rewards threading the rim, not raw power');
+});
+
+test('escape bonus: never paid for a swallowed throw', () => {
+  const r = score(makeTelemetry({
+    trajectoryState: 'HORIZON_CROSSING',
+    consumedPointCount: 12, remainingPointCount: 0, terminationReason: 'ALL_MASS_CONSUMED',
+    initial: { ...makeTelemetry().initial, speed: 280 },
+  }));
+  assert.strictEqual(r.bonus.escapeSurvival.eligible, false);
+  assert.strictEqual(r.bonus.escapeSurvival.score, 0);
+});
+
+test('breakdown exposes the escape bonus row and sums exactly to total', () => {
+  const r = score(escapeVr(1.18));
+  const row = r.breakdown.find((b) => b.key === 'escapeSurvival');
+  assert.ok(row, 'escapeSurvival row present in breakdown');
+  assert.strictEqual(row.score, r.bonus.escapeSurvival.score, 'breakdown row mirrors the bonus');
+  assert.strictEqual(r.breakdown.reduce((a, b) => a + b.score, 0), r.total, 'rows sum to total');
+  assert.ok(r.total <= r.maxTotal, 'bonus stays inside the bounds');
 });

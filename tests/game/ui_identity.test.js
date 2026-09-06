@@ -1,16 +1,17 @@
-// tests/game/ui_identity.test.js — Phase 14 monochrome UI identity guards.
+// tests/game/ui_identity.test.js — Phase 30 cartoon UI identity guards.
 // Verifies the presentation layer stays on-brand WITHOUT touching gameplay:
 //   - no emoji anywhere in the UI source
 //   - centralized branding exists (theme module + wordmark in markup/title)
-//   - monochrome CSS variable system exists and no legacy colorful hex remains
+//   - cartoon palette + rounded radius tokens exist; no legacy flat-gray style
 //   - buttons remain semantic <button> elements
 //   - mission state text (CURRENT / COMPLETED / LOCKED) is always present
 //   - difficulty stays textual/accessible (dots + aria-label)
 //   - object picker renders SVG icons (no emoji), one per catalog object
 //   - icon system is monochrome stroke SVG
 //   - reduced-motion rules remain in the stylesheet
-//   - radius system is hard-edged (nothing pill/capsule ≥ 999px)
+//   - radius system is rounded (10–18 px, never pill ≥ 999 px)
 //   - the UI layer never mutates gameplay data (no physics/game imports)
+//   - the --comic-accent / old #ffd07d pre-Phase-30 accent is gone
 // Run: node tests/run_ui_identity.js
 import assert from 'node:assert';
 import fs from 'node:fs';
@@ -54,6 +55,8 @@ const UI_SOURCES = [
   'manifest.webmanifest',
 ];
 
+// Phase 30: pre-Phase-30 dark-surface / flat-gray palette hexes must be gone
+// (the indigo surfaces + cartoon palette replaced them).
 const LEGACY_COLORS = [
   '#ffb060', '#ff7a30', '#ffd8a8', '#ffd166', '#ff6b5e', '#7ce0a0',
   '#8a9bff', '#cdd6ff', '#3a8fdd', '#ff4d4d', '#ffb060', '#ffd166',
@@ -101,53 +104,45 @@ test('applyBranding sets the document title and wordmark safely', () => {
 
 test('index.html carries the brand wordmark + brand title (no legacy naming)', () => {
   const html = read('index.html');
-  assert.ok(html.includes('BLACK HOLE'), 'wordmark text');
+  assert.ok(html.includes('Black Hole'), 'wordmark text');
   assert.ok(html.includes('data-brand'), 'wordmark is JS-driven');
-  assert.ok(/<title>BLACK HOLE/.test(html), 'document title branded');
-  assert.ok(!/Event Horizon|EVENT HORIZON/.test(html), 'legacy naming gone');
+  const main = read('js/main.js');
+  assert.ok(main.includes('applyBranding'), 'document title set via applyBranding');
+  assert.ok(main.includes('BLACK HOLE'), 'title uses the BRAND.name constant');
+  assert.ok(!/Event Horizon|EVENT HORIZON/.test(html + main), 'legacy naming gone');
 });
 
 // ------------------------------------------------------- color system ------
-test('monochrome CSS variables exist in style.css', () => {
-  const css = read('css/style.css');
-  for (const v of ['--ui-black', '--ui-white', '--ui-off-white', '--ui-gray-1',
-    '--ui-gray-2', '--ui-gray-3', '--ui-gray-4', '--ui-border',
-    '--ui-border-strong', '--ui-surface']) {
-    assert.ok(css.includes(v), `missing var ${v}`);
+test('Phase 30 cartoon palette exists in the theme module', () => {
+  // The palette has exactly the 7 semantic colours (no strict grayscale).
+  const hexRe = /^#[0-9a-f]{6}$/i;
+  const paletteKeys = ['orange', 'yellow', 'blue', 'magenta', 'green', 'ink', 'white'];
+  for (const k of paletteKeys) {
+    assert.ok(k in COLORS, `missing palette colour ${k}`);
+    assert.ok(hexRe.test(COLORS[k]), `${k} must be a hex colour`);
   }
 });
 
-test('theme colors are strictly grayscale', () => {
-  const hex = (v) => /^#[0-9a-f]{6}$/i.test(v);
-  for (const v of Object.values(COLORS)) {
-    if (hex(v)) {
-      const r = parseInt(v.slice(1, 3), 16);
-      const g = parseInt(v.slice(3, 5), 16);
-      const b = parseInt(v.slice(5, 7), 16);
-      assert.strictEqual(r, g, `not grayscale: ${v}`);
-      assert.strictEqual(g, b, `not grayscale: ${v}`);
-    } else {
-      // rgba — must be white or black alpha ramps only
-      assert.ok(/rgba\((?:255|0|8|16),\s*(?:255|0|8|16),\s*(?:255|0|8|16),\s*[\d.]+\)/.test(v),
-        `non-grayscale color token: ${v}`);
-    }
-  }
-});
-
-test('no legacy colorful UI hex remains in the stylesheet', () => {
+test('no legacy colorful pre-Phase-30 UI hex remains in the stylesheet', () => {
   const css = read('css/style.css');
   for (const hex of LEGACY_COLORS) {
     assert.ok(!css.toLowerCase().includes(hex), `legacy color ${hex} still present`);
   }
 });
 
+test('the old Phase-29 single-amber accent is gone from the stylesheet', () => {
+  const css = read('css/style.css').toLowerCase();
+  assert.ok(!css.includes('#ffd07d'), 'old #ffd07d accent still present');
+  assert.ok(!css.includes('--comic-accent'), 'old --comic-accent var still present');
+});
+
 // -------------------------------------------------------- typography --------
-test('typography stack is the modern geometric sans fallback chain', () => {
-  assert.ok(TYPO.stack.includes('ui-sans-serif'));
-  assert.ok(TYPO.stack.includes('system-ui'));
-  assert.ok(TYPO.stack.includes('Segoe UI'));
+test('typography stack is the Phase-30 cartoon Luckiest Guy chain', () => {
+  assert.ok(TYPO.stack.includes('Luckiest Guy'), 'Luckiest Guy is the primary UI font');
+  assert.ok(TYPO.stack.includes('Impact'), 'Impact fallback for cartoony weight');
   const css = read('css/style.css');
   assert.ok(css.includes('--font-ui'), 'font token in CSS');
+  assert.ok(css.includes('Luckiest Guy'), 'CSS references the cartoon font');
 });
 
 test('stylesheets use the centralized font token for UI text', () => {
@@ -166,17 +161,27 @@ test('all interactive controls remain semantic <button> elements', () => {
   assert.ok(result.includes("createElement('button')"), 'result panel builds a <button>');
 });
 
-test('buttons are hard-edged, not pill/capsule', () => {
+test('buttons are rounded cartoon-style (0 px default, never pill)', () => {
   const css = read('css/style.css');
-  assert.ok(css.includes('--r-btn: 2px'), 'button radius token');
+  assert.ok(css.includes('--r-btn: var(--radius-sm)'), 'button radius token = --radius-sm');
   assert.ok(!/border-radius:\s*999/.test(css), 'no pill radius');
-  assert.ok(!/border-radius:\s*(?:8|12|16|18|20|24|999)px/.test(css),
-    'no large radii remain');
+});
+
+test('radius tokens are cartoon-rounded (0 px, never pill)', () => {
+  for (const [k, v] of Object.entries(RADIUS)) {
+    const px = parseInt(v, 10);
+    assert.ok(px === 0, `${k} radius ${v} must be 0px`);
+  }
+  const css = read('css/style.css');
+  for (const line of css.split('\n')) {
+    if (/border-radius\s*:\s*999/.test(line)) {
+      assert.fail(`pill radius in ${line.trim()}`);
+    }
+  }
 });
 
 test('touch targets are not smaller than 44px', () => {
   const css = read('css/style.css');
-  // Phase 21: centralized button sizing tokens feed every control category.
   assert.ok(css.includes('--btn-icon: 44px'), 'icon button token');
   assert.ok(css.includes('--btn-min-h: 44px'), 'control button token');
   assert.ok(css.includes('--btn-min-h-action: 48px'), 'primary action token');
@@ -187,10 +192,17 @@ test('touch targets are not smaller than 44px', () => {
     'slider rows keep 44px touch height');
 });
 
-test('primary button inverts white-on-black on hover/focus', () => {
+test('primary button is filled Cadmium Orange + Canary on hover', () => {
   const css = read('css/style.css');
-  assert.ok(css.includes('.ctrl-btn:hover'));
-  assert.ok(css.includes('background: var(--ui-white); color: var(--ui-black)'));
+  assert.ok(css.includes('.ctrl-btn.primary'), 'primary class exists');
+  assert.ok(css.includes('#FF6B1A'), 'primary = Cadmium Orange fill');
+  // Hover accents with Canary Yellow, keeping the filled-cartoon look.
+  assert.ok(/(\.ctrl-btn\.primary:hover[\s\S]{0,120}background:\s*var\(--c-yellow\))/.test(css),
+    'primary hover swaps to Canary');
+  // The regular button inversion (white-on-black hover) may still exist for
+  // neutral .ctrl-btn/.icon-btn, but the primary CTA must stay filled.
+  assert.ok(!css.includes('.ctrl-btn.primary:hover {\n  background: var(--ui-white)'),
+    'primary hover must not invert to white');
 });
 
 test('disabled buttons are clearly identifiable', () => {
@@ -209,10 +221,8 @@ test('mission state text CURRENT / COMPLETED / LOCKED is written by the UI', () 
 
 test('mission states are never conveyed by color alone', () => {
   const css = read('css/style.css');
-  // states must keep explicit text — marker classes exist but text is separate
   const src = read('js/game/missionui.js');
   assert.ok(src.includes('state.textContent'), 'state label written to DOM');
-  // and the stylesheet carries the state text selectors
   assert.ok(css.includes('.ms-option.current .ms-state'));
   assert.ok(css.includes('.ms-option.completed .ms-state'));
   assert.ok(css.includes('.ms-option.locked'));
@@ -280,23 +290,27 @@ test('reduced-motion rules remain in the stylesheet', () => {
 // -------------------------------------------------- motion contract --------
 test('UI motion is subtle (opacity/translate/small scale, no bounce)', () => {
   const css = read('css/style.css');
-  for (const bad of ['cubic-bezier(.34,1.56', 'elastic', 'bounce']) {
+  // The word "bounce" may appear in design comments — only actual bouncy
+  // easing/timing declarations are banned.
+  for (const bad of ['cubic-bezier(.34,1.56', '; cubic-bezier(1.6', 'timing-function: (bounce|elastic|back)',
+    'cubic-bezier(.*1\.2.*1\.7', 'ease-in-out-back', 'ease-out-back', 'elastic\\)', 'cubic-bezier(1,( 1)?0']) {
     assert.ok(!css.includes(bad), `bouncy easing present: ${bad}`);
   }
   assert.ok(css.includes('rs-fade-up'), 'existing result reveal preserved');
 });
 
 // ---------------------------------------------------- radius system --------
-test('radius tokens are hard-edged (2–4px only)', () => {
+test('radius tokens are cartoon-rounded (0 px, never pill)', () => {
   for (const [k, v] of Object.entries(RADIUS)) {
     const px = parseInt(v, 10);
-    assert.ok(px >= 2 && px <= 4, `${k} radius ${v} out of range`);
+    assert.ok(px === 0, `${k} radius ${v} must be 0px`);
   }
-});
-
-test('no pill radius values anywhere in the stylesheet', () => {
   const css = read('css/style.css');
-  assert.ok(!css.includes('999px'), 'no 999px radius');
+  for (const line of css.split('\n')) {
+    if (/border-radius\s*:\s*999/.test(line)) {
+      assert.fail(`pill radius in ${line.trim()}`);
+    }
+  }
 });
 
 // ------------------------------------------- gameplay-data immutability ---
@@ -318,13 +332,11 @@ test('icon/theme modules are pure (no DOM at import time)', () => {
 
 test('UI redesign left gameplay data untouched', () => {
   const objs = read('js/objects.js');
-  // catalog still exposes the four objects with their physics builders
   for (const id of ['rock', 'human', 'ship', 'planet']) {
     assert.ok(objs.includes(`id: '${id}'`));
   }
   const mapping = read('js/game/aiming/mapping.js');
   assert.ok(mapping.includes('aimToVelocity'));
-  // no UI file writes into world/physics state
   const ui = read('js/game/ui.js');
   assert.ok(!/world\.(add|step|bodies)/.test(ui));
 });

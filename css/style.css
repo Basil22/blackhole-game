@@ -1,43 +1,55 @@
-/* style.css — Phase 14 monochrome UI identity. Black + white, hard edges,
-   technical instrument-panel language. Mirrors js/ui/theme.js tokens.
-   Color is NEVER the carrier of state — text is. */
+/* style.css — Phase 30 cartoon identity. Bright saturated palette, rounded
+   corners, thick Licorice-ink outlines, Paper-cream surfaces replacing stark
+   white. Color is now an EMOTIONAL signal on top of text (the old Phase 14
+   "color is never the carrier of state" mono-rule is overridden by design).
+   State text (LOCKED/CURRENT/FAIL/ON/OFF) is still always written out —
+   color reinforces, never carries alone. Mirrors js/ui/theme.js tokens. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --ui-black: #000000;
-  --ui-ink: #050505;
-  --ui-surface: rgba(0, 0, 0, 0.88);
-  --ui-surface-panel: rgba(8, 8, 8, 0.97);
-  --ui-surface-raised: rgba(16, 16, 16, 0.92);
-  --ui-white: #ffffff;
-  --ui-off-white: #f2f2f2;
+  --c-orange: #FF6B1A;    /* Cadmium Orange — dominant CTA color */
+  --c-yellow: #FFE135;    /* Canary Yellow — secondary highlight */
+  --c-blue: #4AC6FF;      /* Sky Blue — cold contrast */
+  --c-magenta: #FF3D8A;   /* Bubblegum Magenta — comedic absurdity */
+  --c-green: #4CD97B;     /* Grass Green — success / unlock */
+  --c-ink: #1A1A1A;       /* Licorice outline / hard shadows */
+  --c-white: #FFF8EC;     /* Paper Cream panel + word background */
+  --c-muted: #6B6459;     /* de-emphasized text, hints */
+
+  --radius-sm: 0px;   /* buttons, chips, small controls */
+  --radius-md: 0px;   /* panels, modals, cards */
+  
+  --r-btn: var(--radius-sm);
+  --r-panel: var(--radius-md);
+  --r-chip: var(--radius-sm);
+  --r-card: var(--radius-md);
+  --r-input: var(--radius-sm);
+  
+  --ui-black: var(--c-ink);
+  --ui-white: var(--c-white);
   --ui-gray-1: #d8d8d8;
-  --ui-gray-2: #a0a0a0;
+  --ui-gray-2: var(--c-muted);
   --ui-gray-3: #666666;
   --ui-gray-4: #333333;
-  --ui-dim: #8f8f8f;
-  --ui-border: rgba(255, 255, 255, 0.18);
-  --ui-border-strong: rgba(255, 255, 255, 0.4);
-  --ui-border-bright: rgba(255, 255, 255, 0.65);
+  --ui-border: rgba(255, 248, 236, 0.18);
+  --ui-border-strong: rgba(76, 198, 255, 0.55);
+  --ui-surface: var(--c-surface);
+  
+  --font-ui: 'Luckiest Guy', Impact, 'Arial Black', sans-serif;
+  --btn-icon: 44px;
+  --btn-min-h: 44px;
+  --btn-min-h-action: 48px;
+}
 
-  --r-btn: 2px;
-  --r-panel: 3px;
-  --r-chip: 3px;
-  --r-card: 2px;
-
-  /* Phase 21 — centralized button sizing system. One size per category so all
-     buttons of a kind render identically (width/height/border/alignment). */
-  --btn-icon: 44px;       /* icon buttons: audio, capture, menu */
-  --btn-min-h: 44px;      /* secondary/control text buttons: CANCEL, SETTINGS */
-  --btn-min-h-action: 48px; /* primary actions: THROW, PLAY, DONE */
-  --btn-stroke: 1.7px;    /* icon stroke width shared by the icon catalog */
-
-  /* Phase 23 — the level + mission compact card WIDTH. One clamp()/vw token,
-     no JS polling: both cards are always the same box, whatever the content. */
-  --chip-w: clamp(150px, 46vw, 180px);
-
-  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* Phase 30 — subset/preloaded cartoon webfont (glyphs actually used: A-Z,
+   a-z, 0-9, ASCII punctuation, ·, ×, →). 23 KB, so it stays cheap on mobile. */
+@font-face {
+  font-family: 'Luckiest Guy';
+  src: url('fonts/luckiest-guy-latin-sub.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 html, body {
@@ -52,7 +64,7 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-:focus-visible { outline: 1px solid var(--ui-white); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--c-yellow); outline-offset: 2px; }
 
 #canvas-container { position: fixed; inset: 0; }
 
@@ -66,16 +78,16 @@ html, body {
    while the camera accelerates in. Purely presentational, GPU-composited,
    one transition — zero per-frame DOM work. */
 body.intro-diving #vignette {
-  background: radial-gradient(ellipse at center, transparent 34%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.16) 70%, rgba(255, 255, 255, 0.06) 88%, rgba(255, 255, 255, 0.12) 100%);
-  box-shadow: inset 0 0 140px rgba(255, 255, 255, 0.05);
+  background: radial-gradient(ellipse at center, transparent 34%, rgba(255, 225, 53, 0) 55%, rgba(255, 225, 53, 0.08) 70%, rgba(255, 225, 53, 0.16) 88%, rgba(255, 225, 53, 0.28) 100%);
+  box-shadow: inset 0 0 140px rgba(255, 225, 53, 0.10);
 }
 
 /* Phase 23 — as the camera approaches the settle framing, the peripheral
    light brightens a touch (single class toggle at ~72% of the dive). It
    never covers the black hole's center — the near radius stays dark. */
 body.intro-approach #vignette {
-  background: radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.15) 62%, rgba(255, 255, 255, 0.1) 86%, rgba(255, 255, 255, 0.2) 100%);
-  box-shadow: inset 0 0 200px rgba(255, 255, 255, 0.09);
+  background: radial-gradient(ellipse at center, transparent 38%, rgba(255, 225, 53, 0.14) 62%, rgba(255, 225, 53, 0.22) 86%, rgba(255, 225, 53, 0.34) 100%);
+  box-shadow: inset 0 0 200px rgba(255, 225, 53, 0.16);
 }
 
 /* ---------- top bar ---------- */
@@ -83,7 +95,7 @@ body.intro-approach #vignette {
   position: fixed; top: 0; left: 0; right: 0;
   display: flex; align-items: center; justify-content: center;
   padding: calc(8px + env(safe-area-inset-top)) 8px 8px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+  background: linear-gradient(to bottom, rgba(21, 16, 34, 0.72), transparent);
   z-index: 10;
   pointer-events: none;
 }
@@ -111,14 +123,19 @@ button {
 .icon-btn, .ctrl-btn {
   background: var(--ui-black);
   border: 1px solid var(--ui-border-strong); color: var(--ui-white);
-  border-radius: var(--r-btn); cursor: pointer;
+  border-radius: var(--radius-sm); cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 .icon-btn:hover, .icon-btn:focus-visible,
 .ctrl-btn:hover, .ctrl-btn:focus-visible {
-  background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white);
+  background: var(--ui-white); color: var(--ui-black); border-color: var(--c-yellow);
 }
-.icon-btn:active, .ctrl-btn:active { transform: translateY(1px); }
+/* Phase 30 — cartoon squash-and-stretch press: a quick squish down instead of
+   the old 1px nudge. Cheap (transform only), killed by reduced-motion. */
+.icon-btn:active, .ctrl-btn:active {
+  transform: scale(0.94, 0.9) translateY(1px);
+  transition-duration: 0.05s;
+}
 .icon-btn:disabled, .ctrl-btn:disabled {
   background: var(--ui-black); color: var(--ui-gray-3);
   border-color: rgba(255, 255, 255, 0.12); cursor: default;
@@ -134,10 +151,32 @@ button {
   min-height: var(--btn-min-h);
   padding: 10px 16px; font-size: 12px; font-weight: 800; letter-spacing: 0.16em;
 }
+/* Phase 30 — primary actions are filled Cadmium Orange carroty CTAs with
+   Licorice ink + a hard ink outline (cartoon comics language). */
 .ctrl-btn.primary {
   min-height: var(--btn-min-h-action);
-  border-color: var(--ui-white); color: var(--ui-white);
+  background: var(--c-orange); color: var(--ui-black);
+  border: 2px solid var(--ui-black);
   min-width: 120px; padding: 13px 24px; font-size: 13px;
+}
+.ctrl-btn.primary:hover, .ctrl-btn.primary:focus-visible {
+  background: var(--c-yellow); color: var(--ui-black); border-color: var(--ui-black);
+}
+.ctrl-btn.primary:active { background: var(--c-orange); }
+
+.ctrl-btn.primary.aiming {
+  background: var(--c-yellow); color: var(--ui-black); border-color: var(--ui-black);
+  animation: aim-pulse 1.2s ease-in-out infinite;
+}
+.ctrl-btn.primary:disabled {
+  background: var(--ui-gray-4); color: var(--ui-gray-3);
+  border-color: rgba(255, 255, 255, 0.12); cursor: default;
+}
+.ctrl-btn.on { background: var(--c-yellow); color: var(--ui-black); border-color: var(--ui-black); }
+
+@keyframes aim-pulse {
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(255, 225, 53, 0); }
+  50% { transform: translateY(-1px) scale(1.02, 0.98); box-shadow: 0 0 0 3px rgba(255, 225, 53, 0.35); }
 }
 
 /* ---------- top-left menu FAB (single information/settings access) ---------- */
@@ -147,7 +186,7 @@ button {
   width: var(--btn-icon); height: var(--btn-icon);
   background: var(--ui-black);
   border: 1px solid var(--ui-border-strong); color: var(--ui-white);
-  border-radius: var(--r-btn);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   z-index: 12;
@@ -161,7 +200,7 @@ button {
 #hud {
   position: fixed; left: 0; right: 0; bottom: 0;
   padding: 6px 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  background: linear-gradient(to top, rgba(21, 16, 34, 0.86), transparent);
   z-index: 10;
   display: flex; flex-direction: column; gap: 4px;
   align-items: center;
@@ -178,8 +217,8 @@ button {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; min-width: 150px; max-width: min(60vw, 220px);
   padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--ui-border); border-radius: var(--r-card); color: var(--ui-gray-1);
+  background: rgba(20, 16, 30, 0.55);
+  border: 1px solid var(--ui-border); border-radius: var(--radius-md); color: var(--ui-gray-1);
   cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
   font-family: var(--font-ui);
 }
@@ -204,7 +243,7 @@ button {
   transform: translateX(-50%);
   gap: 6px; padding: 6px;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
   z-index: 18;
 }
@@ -228,7 +267,7 @@ body.obj-panel-open #zoom-row { display: none; }
   width: 44px; height: 44px; min-height: 0;
   display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid var(--ui-border);
-  border-radius: var(--r-btn); color: var(--ui-gray-1); cursor: pointer;
+  border-radius: var(--radius-sm); color: var(--ui-gray-1); cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .obj-panel-close:hover, .obj-panel-close:focus-visible {
@@ -242,13 +281,13 @@ body.obj-panel-open #zoom-row { display: none; }
 .obj-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   width: 72px; min-height: 52px; padding: 5px 4px 6px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--ui-border); border-radius: var(--r-card); color: var(--ui-gray-1);
+  background: rgba(20, 16, 30, 0.55);
+  border: 1px solid var(--ui-border); border-radius: var(--radius-md); color: var(--ui-gray-1);
   cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .obj-btn:hover { border-color: var(--ui-border-strong); color: var(--ui-white); }
 .obj-btn.active {
-  border-color: var(--ui-white); background: rgba(255, 255, 255, 0.07); color: var(--ui-white);
+  border-color: var(--c-yellow); background: rgba(255, 225, 53, 0.10); color: var(--ui-white);
 }
 .obj-icon {
   display: flex; align-items: center; justify-content: center;
@@ -308,17 +347,17 @@ body.obj-panel-open #zoom-row { display: none; }
 #size-slider::-webkit-slider-thumb,
 #zoom-slider::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 16px; height: 16px; margin-top: -7px;
-  border-radius: 2px; background: var(--ui-white); border: 1px solid var(--ui-black);
+  width: 18px; height: 18px; margin-top: -8px;
+  border-radius: 50%; background: var(--c-yellow); border: 2px solid var(--ui-black);
 }
 #size-slider::-moz-range-track,
 #zoom-slider::-moz-range-track { height: 2px; background: var(--ui-gray-4); border: none; }
 #size-slider::-moz-range-thumb,
 #zoom-slider::-moz-range-thumb {
-  width: 16px; height: 16px; border-radius: 2px;
-  background: var(--ui-white); border: 1px solid var(--ui-black);
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--c-yellow); border: 2px solid var(--ui-black);
 }
-#size-val, #zoom-val { min-width: 34px; color: var(--ui-white); font-variant-numeric: tabular-nums; }
+#size-val, #zoom-val { min-width: 34px; color: var(--c-yellow); font-variant-numeric: tabular-nums; }
 .zoom-side {
   flex: none; font-size: 7px; font-weight: 800; letter-spacing: 0.2em;
   color: var(--ui-gray-3); text-transform: uppercase;
@@ -335,7 +374,7 @@ body.obj-panel-open #zoom-row { display: none; }
 .slowmo-btn .ico { display: flex; }
 /* single always-visible icon; the enabled state is the white fill, never an
    icon swap */
-.slowmo-btn.on { background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white); }
+.slowmo-btn.on { background: var(--c-yellow); color: var(--ui-black); border-color: var(--ui-black); }
 
 /* Phase 17 — CANCEL replaces THROW while aiming: normal [slowmo][THROW] ↔
    aiming [CANCEL]. Secondary language (black, thin border, close icon) —
@@ -371,7 +410,7 @@ body.obj-panel-open #zoom-row { display: none; }
 .readout {
   position: fixed; top: calc(46px + env(safe-area-inset-top)); left: 50%;
   transform: translateX(-50%);
-  padding: 6px 14px; border-radius: var(--r-chip);
+  padding: 6px 14px; border-radius: var(--radius-sm);
   background: var(--ui-surface); border: 1px solid var(--ui-border);
   font-size: 11px; letter-spacing: 0.12em; color: var(--ui-gray-1);
   white-space: nowrap; z-index: 15; pointer-events: none;
@@ -383,7 +422,7 @@ body.obj-panel-open #zoom-row { display: none; }
 .flash {
   position: fixed; top: calc(84px + env(safe-area-inset-top)); left: 50%;
   transform: translateX(-50%);
-  padding: 5px 14px; border-radius: var(--r-chip);
+  padding: 5px 14px; border-radius: var(--radius-sm);
   background: var(--ui-surface); border: 1px solid var(--ui-border-strong);
   color: var(--ui-white);
   font-weight: 700; font-size: 11px; letter-spacing: 0.14em;
@@ -396,7 +435,7 @@ body.obj-panel-open #zoom-row { display: none; }
   position: fixed;
   bottom: calc(216px + env(safe-area-inset-bottom)); left: 50%;
   transform: translateX(-50%);
-  padding: 6px 14px; border-radius: var(--r-chip);
+  padding: 6px 14px; border-radius: var(--radius-sm);
   background: var(--ui-surface); border: 1px solid var(--ui-border-strong);
   color: var(--ui-white);
   font-weight: 700; font-size: 11px; letter-spacing: 0.16em;
@@ -409,7 +448,7 @@ body.obj-panel-open #zoom-row { display: none; }
 .modal {
   position: fixed; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(12, 8, 22, 0.84);
   opacity: 0; pointer-events: none; transition: opacity 0.25s;
   padding: 20px;
 }
@@ -418,7 +457,7 @@ body.obj-panel-open #zoom-row { display: none; }
 .modal-box {
   max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto;
   background: var(--ui-surface-panel); border: 1px solid var(--ui-border-strong);
-  border-radius: var(--r-panel);
+  border-radius: var(--radius-md);
   padding: 24px;
 }
 .brand-display {
@@ -426,12 +465,13 @@ body.obj-panel-open #zoom-row { display: none; }
   line-height: 0.92; letter-spacing: 0.14em; font-weight: 800; font-size: 34px;
   color: var(--ui-white); text-transform: uppercase;
 }
-.brand-display span { color: var(--ui-white); }
+/* Phase 30 — the brand two-tone: cream line + canary spark line. */
+.brand-display span { color: var(--c-yellow); }
 .brand-tag {
   font-size: 9px; font-weight: 700; letter-spacing: 0.3em;
-  color: var(--ui-gray-2); margin: 10px 0 18px; text-transform: uppercase;
+  color: var(--c-blue); margin: 10px 0 18px; text-transform: uppercase;
 }
-.modal-box h2 { color: var(--ui-white); margin-bottom: 10px; font-size: 16px; letter-spacing: 0.1em; }
+.modal-box h2 { color: var(--c-yellow); margin-bottom: 10px; font-size: 16px; letter-spacing: 0.1em; }
 .modal-box h3 { color: var(--ui-gray-1); margin: 16px 0 8px; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
 .modal-box p { font-size: 13px; line-height: 1.55; color: var(--ui-gray-1); }
 .modal-box ul { list-style: none; margin: 8px 0 4px; }
@@ -446,7 +486,7 @@ body.obj-panel-open #zoom-row { display: none; }
   position: fixed; top: calc(46px + env(safe-area-inset-top)); left: 50%;
   transform: translateX(-50%) translateY(-4px);
   display: flex; align-items: center; gap: 7px;
-  padding: 5px 13px; border-radius: var(--r-chip);
+  padding: 5px 13px; border-radius: var(--radius-sm);
   background: var(--ui-surface); border: 1px solid var(--ui-border);
   font-size: 11px; letter-spacing: 0.12em; font-weight: 700;
   white-space: nowrap; z-index: 16; pointer-events: none;
@@ -455,12 +495,12 @@ body.obj-panel-open #zoom-row { display: none; }
 .hud-chip.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .gh-dist { color: var(--ui-gray-2); font-weight: 600; }
 
-/* State tones — text carries the meaning; these only vary weight/brightness
-   within the monochrome ramp. Never color. */
+/* State tones — text still carries the meaning; color now adds the emotion.
+   Color never carries the state alone (the state string is always present). */
 .tonal-neutral { color: var(--ui-gray-2); }
-.tonal-success { color: var(--ui-white); }
-.tonal-special { color: var(--ui-white); font-weight: 800; }
-.tonal-danger  { color: var(--ui-white); font-weight: 800; letter-spacing: 0.06em; }
+.tonal-success { color: var(--c-green); font-weight: 800; }
+.tonal-special { color: var(--c-blue); font-weight: 800; }
+.tonal-danger  { color: var(--c-orange); font-weight: 800; letter-spacing: 0.06em; }
 
 /* ---------- compact HUD cards (level chip + mission chip) ----------
    Phase 23 — ONE shared component. The two chips are the same object:
@@ -475,7 +515,7 @@ body.obj-panel-open #zoom-row { display: none; }
   width: var(--chip-w);
   min-height: 52px; height: 52px;
   padding: 4px 12px;
-  background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--r-chip);
+  background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--radius-sm);
   color: var(--ui-white); cursor: pointer; text-align: left;
   transition: border-color 0.15s, background 0.15s, transform 0.32s ease, opacity 0.32s ease;
   z-index: 14;
@@ -492,7 +532,7 @@ body.gameplay-active .mission-chip {
 :is(.level-chip, .mission-chip):hover,
 :is(.level-chip, .mission-chip):active,
 :is(.level-chip, .mission-chip):focus-visible {
-  border-color: var(--ui-border-bright); background: rgba(255, 255, 255, 0.05);
+  border-color: var(--c-yellow); background: rgba(255, 225, 53, 0.08);
 }
 /* shared 3-row card: kicker (label + counter), title, object. One row def. */
 :is(.lv-kicker, .ms-kicker) {
@@ -510,7 +550,7 @@ body.gameplay-active .mission-chip {
   font-size: 8px; font-weight: 800; letter-spacing: 0.22em; color: var(--ui-gray-3);
   text-transform: uppercase;
 }
-.lv-num { color: var(--ui-white); font-variant-numeric: tabular-nums; }
+.lv-num { color: var(--c-yellow); font-variant-numeric: tabular-nums; }
 :is(.lv-title, .ms-title) {
   font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: var(--ui-white);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
@@ -524,7 +564,7 @@ body.gameplay-active .mission-chip {
 .mission-modal {
   position: fixed; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(12, 8, 22, 0.82);
   opacity: 0; pointer-events: none; transition: opacity 0.22s;
   padding: 20px;
 }
@@ -532,19 +572,19 @@ body.gameplay-active .mission-chip {
 .mission-modal-box {
   width: min(88vw, 340px); max-height: 80vh; overflow-y: auto;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   padding: 18px 16px 16px; text-align: center;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
 }
 .ms-heading {
-  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  color: var(--c-yellow); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
   margin-bottom: 10px; text-transform: uppercase;
 }
 .ms-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .ms-option {
   display: flex; flex-direction: column; gap: 2px;
   padding: 10px 12px; min-height: 44px;
-  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--r-card);
+  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--radius-md);
   color: var(--ui-white); cursor: pointer; text-align: left;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -565,16 +605,16 @@ body.gameplay-active .mission-chip {
 .ms-option.completed { border-color: var(--ui-border); }
 .ms-option.completed .ms-marker { color: var(--ui-gray-1); }
 .ms-option.completed .ms-state { color: var(--ui-gray-2); }
-.ms-option.current { border-color: var(--ui-border-bright); background: rgba(255, 255, 255, 0.06); }
-.ms-option.current .ms-marker { color: var(--ui-white); }
-.ms-option.current .ms-state { color: var(--ui-white); font-weight: 800; }
-.ms-option.active { border-color: var(--ui-white); }
+.ms-option.current { border-color: var(--ui-border-bright); background: rgba(255, 225, 53, 0.08); }
+.ms-option.current .ms-marker { color: var(--c-yellow); }
+.ms-option.current .ms-state { color: var(--c-yellow); font-weight: 800; }
+.ms-option.active { border-color: var(--c-yellow); }
 .ms-close { width: 100%; min-height: 46px; }
 
 /* selected-mission challenge detail card (below the list) */.ms-detail {
   display: none; flex-direction: column; gap: 2px;
   margin-bottom: 14px; padding: 10px 12px;
-  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--r-card);
+  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--radius-md);
   text-align: left;
 }
 .ms-detail.show { display: flex; }
@@ -599,7 +639,7 @@ body.gameplay-active .mission-chip {
 .level-modal {
   position: fixed; inset: 0; z-index: 40;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(12, 8, 22, 0.82);
   opacity: 0; pointer-events: none; transition: opacity 0.22s;
   padding: 20px;
 }
@@ -607,19 +647,19 @@ body.gameplay-active .mission-chip {
 .level-modal-box {
   width: min(88vw, 340px); max-height: 80vh; overflow-y: auto;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   padding: 18px 16px 16px; text-align: center;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
 }
 .lv-heading {
-  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  color: var(--c-yellow); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
   margin-bottom: 10px; text-transform: uppercase;
 }
 .lv-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .lv-option {
   display: flex; flex-direction: column; gap: 2px;
   padding: 10px 12px; min-height: 44px;
-  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--r-card);
+  background: var(--ui-black); border: 1px solid var(--ui-border); border-radius: var(--radius-md);
   color: var(--ui-white); cursor: pointer; text-align: left;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -642,16 +682,16 @@ body.gameplay-active .mission-chip {
 .lv-option.completed { border-color: var(--ui-border); }
 .lv-option.completed .lv-marker { color: var(--ui-gray-1); }
 .lv-option.completed .lv-state { color: var(--ui-gray-2); }
-.lv-option.current { border-color: var(--ui-border-bright); background: rgba(255, 255, 255, 0.06); }
-.lv-option.current .lv-marker { color: var(--ui-white); }
-.lv-option.current .lv-state { color: var(--ui-white); font-weight: 800; }
-.lv-option.active { border-color: var(--ui-white); }
+.lv-option.current { border-color: var(--ui-border-bright); background: rgba(255, 225, 53, 0.08); }
+.lv-option.current .lv-marker { color: var(--c-yellow); }
+.lv-option.current .lv-state { color: var(--c-yellow); font-weight: 800; }
+.lv-option.active { border-color: var(--c-yellow); }
 .lv-close { width: 100%; min-height: 46px; }
 
 /* ---------- throw result ---------- */
 #result-scrim {
   position: fixed; inset: 0; z-index: 36;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(12, 8, 22, 0.62);
   opacity: 0; pointer-events: none; transition: opacity 0.25s;
 }
 body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
@@ -662,7 +702,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   width: min(88vw, 340px); max-width: 92vw; max-height: 78vh;
   overflow-y: auto; z-index: 37;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   padding: 20px 22px 18px; text-align: center;
   opacity: 0; pointer-events: none;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
@@ -690,7 +730,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 /* alarm cue for the violent outcomes — white tag, no color */
 .rs-headline.tonal-danger {
   display: inline-block;
-  border-left: 2px solid var(--ui-white);
+  border-left: 4px solid var(--c-orange);
   padding-left: 10px;
   text-align: left;
 }
@@ -699,7 +739,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   margin: 2px 0 10px;
 }
 .rs-total {
-  font-size: 40px; font-weight: 800; letter-spacing: 0.04em; color: var(--ui-white);
+  font-size: 40px; font-weight: 800; letter-spacing: 0.04em; color: var(--c-yellow);
   font-variant-numeric: tabular-nums;
 }
 .rs-max {
@@ -710,7 +750,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .rs-mission {
   display: none;
   margin: 0 0 12px; padding: 8px 10px;
-  border-radius: var(--r-card); border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md); border: 1px solid var(--ui-border);
   background: var(--ui-black);
 }
 .rs-mission.show { display: block; }
@@ -842,7 +882,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
      minimum breathing rule. One flex centering, no magic offsets. */
   padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
            calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-  background: rgba(0, 0, 0, 0.93);
+  background: rgba(13, 9, 24, 0.94);
   opacity: 1; pointer-events: auto;
   transition: opacity 0.42s ease;
 }
@@ -863,13 +903,13 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   width: min(72vw, 220px);
 }
 .opening-brand {
-  color: var(--ui-white);
+  color: var(--c-yellow);
   font-size: clamp(30px, 7vw, 44px);
   font-weight: 800; letter-spacing: 0.24em; text-indent: 0.24em;
   text-transform: uppercase; line-height: 1.05;
 }
 .opening-sub {
-  color: var(--ui-gray-2);
+  color: var(--c-blue);
   font-size: 10px; font-weight: 700; letter-spacing: 0.52em; text-indent: 0.52em;
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -889,7 +929,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .settings-modal {
   position: fixed; inset: 0; z-index: 70;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(12, 8, 22, 0.84);
   opacity: 0; pointer-events: none; transition: opacity 0.22s;
   padding: 20px;
 }
@@ -897,12 +937,12 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .settings-modal-box {
   width: min(88vw, 360px); max-height: 82vh; overflow-y: auto;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   padding: 18px 16px 16px; text-align: left;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
 }
 .st-heading {
-  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  color: var(--c-yellow); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
   margin-bottom: 12px; text-transform: uppercase;
 }
 .st-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -910,7 +950,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   display: flex; flex-direction: column; gap: 3px;
   padding: 8px 12px; min-height: 56px;
   background: var(--ui-black); border: 1px solid var(--ui-border);
-  border-radius: var(--r-card);
+  border-radius: var(--radius-md);
 }
 .set-row.set-on { border-color: var(--ui-border-strong); }
 .set-row-top {
@@ -924,7 +964,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .set-toggle {
   flex: none;
   min-width: 76px; min-height: 44px;
-  background: var(--ui-black); border: 1px solid var(--ui-border-strong); border-radius: var(--r-btn);
+  background: var(--ui-black); border: 1px solid var(--ui-border-strong); border-radius: var(--radius-sm);
   color: var(--ui-gray-2);
   font-size: 11px; font-weight: 800; letter-spacing: 0.18em;
   cursor: pointer;
@@ -934,7 +974,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   border-color: var(--ui-border-bright);
 }
 .set-toggle.on {
-  background: var(--ui-white); color: var(--ui-black); border-color: var(--ui-white);
+  background: var(--c-yellow); color: var(--ui-black); border-color: var(--ui-black);
 }
 .set-desc {
   color: var(--ui-gray-2);
@@ -949,7 +989,7 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .menu-modal {
   position: fixed; inset: 0; z-index: 70;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(12, 8, 22, 0.84);
   opacity: 0; pointer-events: none; transition: opacity 0.22s;
   padding: 20px;
 }
@@ -957,12 +997,12 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
 .menu-modal-box {
   width: min(88vw, 320px); max-height: 82vh; overflow-y: auto;
   background: var(--ui-surface-panel);
-  border: 1px solid var(--ui-border-strong); border-radius: var(--r-panel);
+  border: 1px solid var(--ui-border-strong); border-radius: var(--radius-md);
   padding: 18px 16px 16px; text-align: left;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.7);
 }
 .mn-heading {
-  color: var(--ui-white); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
+  color: var(--c-yellow); font-size: 13px; letter-spacing: 0.3em; font-weight: 800;
   margin-bottom: 12px; text-transform: uppercase;
 }
 .mn-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -970,10 +1010,10 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   display: flex; align-items: center; gap: 10px;
   width: 100%; min-height: 48px; padding: 8px 12px;
   background: var(--ui-black); border: 1px solid var(--ui-border);
-  border-radius: var(--r-card); color: var(--ui-white); cursor: pointer; text-align: left;
+  border-radius: var(--radius-md); color: var(--ui-white); cursor: pointer; text-align: left;
   transition: border-color 0.15s, background 0.15s;
 }
-.menu-row:hover, .menu-row:focus-visible { border-color: var(--ui-border-strong); background: rgba(255, 255, 255, 0.05); }
+.menu-row:hover, .menu-row:focus-visible { border-color: var(--c-yellow); background: rgba(255, 225, 53, 0.08); }
 .menu-row-icon { flex: none; display: flex; align-items: center; justify-content: center; color: var(--ui-gray-1); }
 .menu-row-icon .ui-ico { display: block; }
 .menu-row-title {
@@ -1012,4 +1052,61 @@ body.result-open #result-scrim { opacity: 1; pointer-events: auto; }
   .rs-mission.show .rs-progression.show {
     opacity: 1 !important; transform: none !important; animation: none !important;
   }
+}
+
+/* =====================================================
+   Phase 29 + 30 — comic visual feedback (presentation only)
+   Comic words over the cartoon identity: Paper-cream ink with a hard
+   Licorice stroke by default; per-event colour classes pick a palette
+   colour (Cadmium Orange / Canary / Sky Blue / Bubblegum / Grass Green).
+   The overlay is pointer-events:none and never intercepts input. The JS
+   renderer clamps words into a safe band clearing the HUD chips and
+   bottom controls; reduced-motion removes bounce and shake at the source
+   (JS shortened keyframes) and the global media rule kills the CSS shake.
+   ===================================================== */
+.comic-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.comic-word {
+  position: absolute; left: 0; top: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-ui);
+  width: 200px; height: 200px;
+  user-select: none;
+  will-change: transform, opacity;
+}
+.comic-burst-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+}
+.comic-burst-text {
+  position: relative; z-index: 1;
+  font-weight: 900;
+  font-size: clamp(26px, 8.5vw, 42px);
+  color: #FFFFFF;
+  -webkit-text-stroke: 2px #1A1A1A;
+  text-shadow:
+    2px 2px 0 #1A1A1A,
+    -2px 2px 0 #1A1A1A,
+    2px -2px 0 #1A1A1A,
+    -2px -2px 0 #1A1A1A;
+}
+
+/* Tiny comic-book "impact" screen shake on the rendered frame. Reduced
+   motion globally kills the animation and the JS skips applying it. */
+body.comic-shake-s #canvas-container { animation: comic-shake 0.16s ease-out; }
+body.comic-shake-m #canvas-container { animation: comic-shake 0.18s ease-out; }
+body.comic-shake-l #canvas-container { animation: comic-shake 0.22s ease-out; }
+
+@keyframes comic-shake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -1px); }
+  80% { transform: translate(2px, 1px); }
+  100% { transform: translate(0, 0); }
 }

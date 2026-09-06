@@ -14,13 +14,14 @@ import { startLoop } from './loop.js';
 import { createThrowTelemetry, TERMINATION } from '../physics.js';
 import { calculateThrowScore } from './scoring/index.js';
 import { calculateGuidance, launchChanged, TrajectoryPath } from './guidance/index.js';
-import { aimFractions } from './aiming/index.js';
+import { aimFractions, OBJECT_SIM_PROFILES } from './aiming/index.js';
 import { GuideHud } from './guidehud.js';
+import { ComicCore, ComicRenderer } from './comic/index.js';
 
 const SPAWN = new THREE.Vector3(0, 19.2, 384);
 
 export class Game {
-  constructor(container, { onUiState, audio } = {}) {
+  constructor(container, { onUiState, audio, comic } = {}) {
     this.container = container;
     this.onUiState = onUiState || (() => {});
     // Optional audio layer (js/audio). Purely emissive — it reads state and
@@ -31,6 +32,14 @@ export class Game {
 
     this.scene = new SceneManager(container, this.config);
     this.particles = new ParticleSystem(this.scene.scene);
+    // Phase 29 comic layer: optional, presentation-only, never writes state.
+    // The core is injected (created in the app shell for tests); the renderer
+    // is built here against the game camera for world-anchored words.
+    this.comic = null;
+    if (comic) {
+      this.comicCore = comic;
+      this.comic = new ComicRenderer(comic, this.scene.camera);
+    }
 
     this.objects = [];          // active sims (each throw = own world+visualizer)
     this.held = null;           // aim-preview object { world, visualizer, meta }
@@ -187,6 +196,7 @@ export class Game {
     // short directional puff marks the moment of release. Prediction state is
     // cleared as before — the real sim takes over.
     this.audio?.launch({ object: this.currentId });
+    this.comic?.show('launch', { object: this.currentId, world: this.spawnPos });
     this.guidance = null;
     this._lastGuideVel = null;
     this.guideHud.hide();
@@ -268,6 +278,10 @@ export class Game {
       horizonRadius: this.held.world.horizonRadius,
       pos: { x: this.spawnPos.x, y: this.spawnPos.y, z: this.spawnPos.z },
       vel: { x: vel.x, y: vel.y, z: vel.z },
+      // Phase 29 — tell the truth: the guidance verdict is corrected to the
+      // measured real-sim survival bands for the object being aimed (the
+      // point-mass analytic says "ORBITAL" for drags the real sim swallows).
+      simProfile: OBJECT_SIM_PROFILES[this.currentId],
     });
     this.trajPath.update(this.guidance);
     this.guideHud.show(this.guidance);
@@ -275,9 +289,10 @@ export class Game {
     // UI-normalized reading; it is never displayed). Latched so the throttled
     // prediction recompute can't re-fire it; only a pull-back below the
     // threshold re-arms. Pure audio side-channel, never a state writer.
-    // Phase 24: threshold 0.70 so the cue fires at tangFrac ≈ 1.34 — a
-    // powerful but BOUND pass, well before escape (√2 ≈ 1.414). Adjusted for
-    // tangMax 1.77 (needed for 360px mobile escape reachability).
+    // Phase 24: threshold 0.70. Phase 29 (envelope max 1.77 → 2.0): the same
+    // 0.70 now reads tangFrac ≈ 1.505 — inside the REAL orbital band (soft
+    // survive ≥1.25), just before the measured real-sim escape rim 1.60, so
+    // the "powerful but still bound" character is exactly right.
     const fr = aimFractions({ dx: this.aim.dx, dy: this.aim.dy });
     const high = fr.power01 >= 0.70;
     if (high && !this._highPowerLatched) {

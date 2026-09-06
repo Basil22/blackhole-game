@@ -19,7 +19,7 @@ const tm = (over) => ({
 });
 const sc = (over = {}) => ({
   total: 12480,
-  maxTotal: 10600,
+  maxTotal: 11400,
   horizonRadius: 40,
   breakdown: [
     { key: 'precision', label: 'PRECISION', score: 5420 },
@@ -28,6 +28,7 @@ const sc = (over = {}) => ({
     { key: 'survival', label: 'SURVIVAL', score: 2680 },
     { key: 'orbital', label: 'ORBITAL', score: 0 },
     { key: 'nearHorizonSurvival', label: 'NEAR-HORIZON SURVIVAL', score: 0 },
+    { key: 'escapeSurvival', label: 'HARD-WON ESCAPE', score: 0 },
   ],
   ...over,
 });
@@ -96,7 +97,7 @@ test('presentResult passes the score through verbatim — never recomputed', () 
   const score = sc();
   const p = presentResult(telemetry, score);
   assert.strictEqual(p.total, 12480);
-  assert.strictEqual(p.maxTotal, 10600);
+  assert.strictEqual(p.maxTotal, 11400);
   assert.strictEqual(p.headline, 'SPAGHETTIFIED');
   // breakdown rows mirror the scorer's own numbers, key by key
   assert.deepStrictEqual(p.breakdown, score.breakdown.map((r) => ({ key: r.key, label: r.label, score: r.score })));

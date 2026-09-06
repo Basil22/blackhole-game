@@ -94,7 +94,7 @@ export function orbital(cat, t) {
   return cat;
 }
 
-// NEAR-HORIZON SURVIVAL BONUS — the V1 (and only) bonus. Bounded and scaled by
+// NEAR-HORIZON SURVIVAL BONUS — the V1 bonus. Bounded and scaled by
 // the same closeness shape as precision, gated on surviving (nothing consumed)
 // with closestApproach strictly outside the horizon. No combos/multipliers.
 export function nearHorizonSurvivalBonus(t, cfg) {
@@ -109,4 +109,39 @@ export function nearHorizonSurvivalBonus(t, cfg) {
   }
   const max = cfg.bonus.nearHorizonSurvivalMax;
   return { eligible, normalized, score: Math.round(normalized * max), max, closestApproach: d, consumed };
+}
+
+// HARD-WON ESCAPE BONUS — Phase 29. Rewards doing the genuinely hard thing (a
+// real escape) instead of the accidental thing (a plunge). An escape launch
+// sits at the spawn radius, so its closest approach never reads "near the
+// horizon" — the discriminating skill is threading the launch JUST past the
+// real escape rim. velocityRatio = launchSpeed / escapeVelocity (from the
+// telemetry's initial snapshot and the configured mu). Full credit at the rim
+// (rate ≈1.13), decaying linearly to zero at a full-power fling (≈1.414). A
+// swallowed throw (consumed) can never claim it.
+export function escapeSurvivalBonus(t, cfg) {
+  const consumed = isConsumed(t);
+  const state = t.trajectoryState;
+  // The finalized-telemetry shape carries the launch snapshot nested under
+  // `initial` ({ speed, distance }); the scoring layer reads exactly that.
+  const r = safeDistance(t.initial?.distance);
+  const s = safeDistance(t.initial?.speed);
+  const vEsc = r > 0 ? Math.sqrt((2 * Math.max(0, cfg.mu)) / r) : 0;
+  const velocityRatio = vEsc > 0 ? s / vEsc : 0;
+  // Eligibility is a STATE fact: a real escape that survived. The CREDIT
+  // (below) is the skill signal — how near the rim the thread ran.
+  const eligible = !consumed && state === 'ESCAPING' && velocityRatio >= 1;
+  let normalized = 0;
+  if (eligible) {
+    const e = cfg.bonus.escape;
+    const span = e.velocityRatioCeiling - e.velocityRatioFloor;
+    const raw = span > 0 ? 1 - (velocityRatio - e.velocityRatioFloor) / span : 0;
+    normalized = normalize01(raw);  // below-floor threads clamp to full credit;
+    // above-ceiling flings clamp to zero (blasé — nothing brave about it)
+  }
+  const max = cfg.bonus.escapeSurvivalMax;
+  return {
+    eligible, normalized, score: Math.round(normalized * max), max,
+    velocityRatio, state,
+  };
 }

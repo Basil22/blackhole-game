@@ -70,14 +70,16 @@ test('frozen gameplay tuning values are unchanged by the feel pass', () => {
   assert.deepStrictEqual(Object.keys(TRAJECTORY), [
     'ESCAPING', 'FLYBY', 'ORBITAL', 'CAPTURED', 'HORIZON_CROSSING', 'UNKNOWN',
   ]);
-  // aiming envelope anchors — tangMax lifted 1.62→1.77 (Phase 24) so a full-width  // 360px drag reaches real-sim escape (drag-loaded threshold ~tangFrac 1.587);
-  // all other Phase-13 anchors untouched.
+  // aiming envelope anchors — Phase 29: real-sim-wide reshape (tangMax 2.0,
+  // circularAt 258→150, escapeAt 272→250 at the MEASURED real-sim escape rim
+  // tangFrac ESCAPE_TANGF=1.60, replacing the analytic √2). All other Phase-13
+  // anchors untouched.
   assert.strictEqual(AIM_MAPPING.tangMin, 0.35);
-  assert.strictEqual(AIM_MAPPING.tangMax, 1.77);
+  assert.strictEqual(AIM_MAPPING.tangMax, 2.0);
   assert.strictEqual(AIM_MAPPING.tangSpan, 340);
-  assert.strictEqual(AIM_MAPPING.curve.escapeAt.tangFrac, Math.SQRT2);
-  assert.strictEqual(AIM_MAPPING.curve.circularAt.dx, 258);
-  assert.strictEqual(AIM_MAPPING.curve.escapeAt.dx, 272);
+  assert.strictEqual(AIM_MAPPING.curve.escapeAt.tangFrac, 1.60);
+  assert.strictEqual(AIM_MAPPING.curve.circularAt.dx, 150);
+  assert.strictEqual(AIM_MAPPING.curve.escapeAt.dx, 250);
   assert.strictEqual(AIM_MAPPING.radGain, 0.00087);
   assert.strictEqual(AIM_MAPPING.yBias, 3.2);
   // physical anchors that the mapping documents

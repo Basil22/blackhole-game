@@ -12,6 +12,12 @@ export const SCORING_CONFIG = Object.freeze({
   // no physics dependency and telemetry is consumed untouched.
   horizonRadius: 40,
 
+  // Gravitational parameter of the black hole (scene units³·s⁻²). Used only to
+  // derive the escape velocity for the escape-survival bonus; mirrors the fixed
+  // game constant. Supplied here so telemetry (which carries no mu) can be
+  // scored in isolation.
+  mu: 12.288e6,
+
   // Share of the score ceiling per category. Sum MUST equal 1.0. V1 balances
   // are intentionally shallow — retune from real throw data later, in this
   // object, not in code.
@@ -68,12 +74,29 @@ export const SCORING_CONFIG = Object.freeze({
   }),
 
   bonus: Object.freeze({
-    // NEAR-HORIZON SURVIVAL — the V1 (and only) bonus:
+    // NEAR-HORIZON SURVIVAL — the V1 bonus:
     // eligible iff closestApproach > horizonRadius AND nothing consumed;
     // scales linearly with the precision curve's closeness so an actual
     // hair's-breadth escape pays more than a fling that never interacted.
     // Bounded: score ∈ [0, nearHorizonSurvivalMax].
     nearHorizonSurvivalMax: 600,
+
+    // HARD-WON ESCAPE — Phase 29: escaping the hole was nearly unpriced (a
+    // proud ESCAPING throw scored less than an accidental plunge). Escapes
+    // launch from the spawn radius (~384) so their closest approach is never
+    // actually near the horizon — the skill that discriminates a brave escape
+    // from a blasé fling is HOW CLOSE TO THE REAL-SIM ESCAPE THRESHOLD the
+    // launch threads. velocityRatio = launchSpeed / escapeVelocity (measured
+    // at the spawn radius): the mapping's escape rim (tangFrac 1.60) reads
+    // velocityRatio ≈ 1.13, a max-power fling reads ~1.414. The bonus pays the
+    // full max at the rim and decays to zero by the blasé tail:
+    //   normalized = 1 − (velocityRatio − floor) / (ceiling − floor)
+    // Bounded: score ∈ [0, escapeSurvivalMax]. Rolled into com.maxTotal on top.
+    escapeSurvivalMax: 800,
+    escape: Object.freeze({
+      velocityRatioFloor: 1.13,    // ≈ the real escape rim (tangFrac 1.60)
+      velocityRatioCeiling: 1.414, // ≈ a full-power fling (tangMax 2.0)
+    }),
   }),
 });
 

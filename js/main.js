@@ -12,6 +12,7 @@ import { TERMINATION } from './physics.js';
 import { createAudioSystem } from './audio/index.js';
 import { Settings, SETTINGS_STORAGE_KEY } from './game/settings/index.js';
 import { SettingsUI } from './game/settingsui.js';
+import { ComicCore } from './game/comic/index.js';
 import { OpeningScreen } from './game/opening.js';
 
 applyBranding({ title: `${BRAND.name} — Spaghettification Sandbox`, wordmark: 'Black Hole' });
@@ -44,6 +45,10 @@ if (!hadSettings) {
   if (legacy !== null) settings.set('audio', legacy === '1');
 }
 
+// Phase 29 comic layer: pure core first (so applySettings can reach it), the
+// DOM/THREE renderer is constructed by Game against the settled camera.
+const comicCore = new ComicCore({ reducedMotion: settings.reduceMotionEffective });
+
 const audioBtn = null; // Phase 21: audio lives only in Settings (menu → settings)
 
 // One application path: settings → audio/haptics layer + legacy mirror.
@@ -51,6 +56,7 @@ const applySettings = (state) => {
   audio.setMuted(state.audio !== true);
   audio.setHapticsEnabled(state.haptics !== false);
   audio.setHapticsReducedMotion(settings.reduceMotionEffective);
+  comicCore.setReducedMotion(settings.reduceMotionEffective);
   localStorage.setItem(AUDIO_KEY, state.audio === true ? '1' : '0');
 };
 settings.onApply = applySettings;
@@ -80,6 +86,7 @@ const game = new Game(container, {
     if (campaignUI) campaignUI.onGameState(st);
   },
   audio,
+  comic: comicCore,
 });
 const campaign = new Campaign();
 ui = new UI(game, { campaign });
@@ -175,6 +182,12 @@ game.onThrowEnded = (telemetry, score) => {
     } else {
       audio.missionFailed();
     }
+    // Comic-book outcome word over the result panel (presentation only; the
+    // panel stays authoritative). No word on a PLAYER_RESET cancel.
+    game.comic?.show(
+      missionResult.completed === true ? 'mission-success' : 'mission-failed',
+      { object: game.currentId, mission: true },
+    );
   }
 
   // The Phase-9 flow planner turns those primitives into the exact result-panel
@@ -251,8 +264,16 @@ opening.onOpenSettings = () => settingsUI.open();
 game.selectObject('rock');
 opening.begin(); // show the title screen + gate input until PLAY
 window.__game = game;          // debug hook
+// Phase 29 — apply the initial reduced-motion preference to the renderer now
+// that the game + scene exist (AudioContext path runs earlier, before `game`).
+game.scene?.setReducedMotion?.(settings.reduceMotionEffective);
 window.__audio = audio;        // debug hook (audio/haptics introspection)
 window.__settings = settings;  // debug hook (settings introspection)
+window.__comic = {             // debug hook (comic layer introspection)
+  core: comicCore,
+  renderer: () => game.comic,
+  show: (eventName, opts) => (game.comic ? game.comic.show(eventName, opts || {}) : false),
+};
 window.__opening = opening;    // debug hook (harness: opening.skip())
 window.__missionUI = missionUI; // debug hook (selection + evaluation readback)
 window.__campaignUI = campaignUI; // debug hook (level selector introspection)
@@ -278,6 +299,44 @@ window.__game.resetCampaign = () => {
   campaignUI.refresh(progression.state.completedMissionIds);
   ui.refreshObjectPicker(progression.state.completedMissionIds);
   ui.setObjectActive('rock');
+};
+
+// Phase 28 — renderer-only handle for the relativistic lensing pass. Lets the
+// verification harness (and future settings) toggle/enable and switch quality
+// WITHOUT touching any gameplay/physics/progression system.
+window.__BH_LENSING__ = {
+  toggle(on) {
+    if (game.scene.setLensingEnabled) game.scene.setLensingEnabled(on !== false);
+    return window.__BH_LENSING__.state();
+  },
+  setQuality(q) {
+    if (game.scene.setQuality) game.scene.setQuality(q);
+    return window.__BH_LENSING__.state();
+  },
+  setReducedMotion(on) {
+    if (game.scene.setReducedMotion) game.scene.setReducedMotion(!!on);
+    return window.__BH_LENSING__.state();
+  },
+  state() {
+    const l = (game.scene && game.scene.lensing) || null;
+    const c = game.scene.camera, r = game.scene.renderer;
+    return {
+      enabled: !!l && l.enabled.value,
+      resolution: l ? l.resolution : [0, 0],
+      steps: l ? l.getSteps() : 0,
+      quality: game.scene.quality,
+      segments: l ? l.material.uniforms.uSegments.value : 0,
+      reducedMotion: l ? l.material.uniforms.uMot.value === 1 : false,
+      glow: l ? l.material.uniforms.uGlow.value : 0,
+      // ---- Diagnostics (Part S): coordinate/aspect/DPR audit ----
+      viewport: [window.innerWidth, window.innerHeight],
+      canvas: [r.domElement.width, r.domElement.height],
+      dpr: (window.devicePixelRatio || 1),
+      aspect: l ? l.getAspect() : 0,           // camera aspect used by the lens ray
+      cameraAspect: c ? c.aspect : 0,          // production camera aspect
+      cameraFov: c ? c.fov : 0,
+    };
+  },
 };
 
 // Android-specific: back button + lifecycle (no-op on desktop, dynamic import)

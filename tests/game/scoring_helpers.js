@@ -19,6 +19,8 @@ export function makeTelemetry(overrides = {}) {
       pointCount: 12,
       span: 4.5,
     },
+    initialSpeed: 140,
+    initialDistance: 384.5,
     initialMass: 12,
     initialPointCount: 12,
 

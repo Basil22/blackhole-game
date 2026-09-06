@@ -187,7 +187,9 @@ test('isKnownMission / getMissionChallenge behave defensively', () => {
   assert.strictEqual(isKnownMission('not-a-mission'), false);
   const ch = getMissionChallenge('orbit-01');
   assert.ok(ch && ch.mission.id === 'orbit-01', 'challenge view for a known mission');
-  assert.strictEqual(ch.difficulty.label, 'HARD', 'difficulty label matches');
+  // Phase 29: orbit-01 retuned 4→2 (the envelope reshape made the ORBITAL band a
+  // wide mid-swipe ramp, so the honest tier is BALANCED, not HARD).
+  assert.strictEqual(ch.difficulty.label, 'BALANCED', 'difficulty label matches');
   assert.strictEqual(getMissionChallenge('not-a-mission'), null, 'unknown → null');
   assert.strictEqual(getMissionChallenge(null), null, 'garbage → null');
   const d1 = missionDifficulty(1);

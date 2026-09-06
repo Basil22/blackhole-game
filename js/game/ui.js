@@ -235,6 +235,7 @@ export class UI {
     const levelModal = document.getElementById('level-modal');
     const intro = document.getElementById('intro-hint');
     const settingsModal = document.getElementById('settings-modal');
+    const comicFx = document.getElementById('comic-fx');
     if (hud) hud.style.display = v ? '' : 'none';
     if (top) top.style.display = v ? '' : 'none';
     if (menuFab) menuFab.style.display = v ? '' : 'none';
@@ -248,6 +249,7 @@ export class UI {
     if (levelModal) levelModal.style.display = v ? '' : 'none';
     if (intro) intro.style.display = v ? '' : 'none';
     if (settingsModal) settingsModal.style.display = v ? '' : 'none';
+    if (comicFx) comicFx.style.display = v ? '' : 'none';
     // never leave a half-open modal/panel behind photo mode
     if (missionModal && !v) missionModal.classList.remove('open');
     if (levelModal && !v) levelModal.classList.remove('open');

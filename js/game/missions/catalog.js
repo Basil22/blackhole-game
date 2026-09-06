@@ -36,7 +36,11 @@ export const MISSION_CATALOG = Object.freeze([
     description: 'Achieve a stable orbital trajectory.',
     type: MISSION_TYPES.STATE,
     state: S.ORBITAL,
-    difficulty: 4,
+    // Phase 29 (envelope reshape): the real orbital band is now a WIDE mid-swipe
+    // ramp (survival floor ~dx 155 rock / ~192 soft objects → escape rim dx 250),
+    // so orbiting is a deliberate-but-easy gesture — no longer the razor's-edge
+    // minimum that justified difficulty 4.
+    difficulty: 2,
     recommendedObjectIds: Object.freeze(['ship', 'planet']),
     hint: 'Try a sideways launch — nudge it into a loop instead of a fatal plunge.',
   },

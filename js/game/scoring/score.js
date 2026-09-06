@@ -6,6 +6,7 @@
 import { SCORING_CONFIG } from './config.js';
 import {
   precision, tidal, destruction, survival, orbital, nearHorizonSurvivalBonus,
+  escapeSurvivalBonus,
 } from './categories.js';
 
 // Build an empty category row. `max` = weight · maxTotalScore, so normalized 1
@@ -33,6 +34,7 @@ export function calculateThrowScore(telemetry, config = SCORING_CONFIG) {
   orbital(cats.orbital, telemetry);
 
   const bonus = nearHorizonSurvivalBonus(telemetry, config);
+  const escapeBonus = escapeSurvivalBonus(telemetry, config);
 
   const breakdown = [
     cats.precision, cats.tidal, cats.destruction, cats.survival, cats.orbital,
@@ -44,12 +46,18 @@ export function calculateThrowScore(telemetry, config = SCORING_CONFIG) {
     eligible: bonus.eligible, closestApproach: bonus.closestApproach,
   };
   breakdown.push(bonusRow);
+  const escapeRow = {
+    key: 'escapeSurvival', label: 'HARD-WON ESCAPE',
+    score: escapeBonus.score, normalized: escapeBonus.normalized, max: escapeBonus.max,
+    eligible: escapeBonus.eligible, velocityRatio: escapeBonus.velocityRatio,
+  };
+  breakdown.push(escapeRow);
 
   const total = breakdown.reduce((sum, row) => sum + row.score, 0);
 
   return {
     total,
-    maxTotal: maxTotal + config.bonus.nearHorizonSurvivalMax,
+    maxTotal: maxTotal + config.bonus.nearHorizonSurvivalMax + config.bonus.escapeSurvivalMax,
     horizonRadius: config.horizonRadius,
     categories: {
       precision: { ...cats.precision },
@@ -58,7 +66,7 @@ export function calculateThrowScore(telemetry, config = SCORING_CONFIG) {
       survival: { ...cats.survival },
       orbital: { ...cats.orbital },
     },
-    bonus: { nearHorizonSurvival: bonus },
+    bonus: { nearHorizonSurvival: bonus, escapeSurvival: escapeBonus },
     breakdown,
   };
 }

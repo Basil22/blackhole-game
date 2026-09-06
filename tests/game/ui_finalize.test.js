@@ -61,7 +61,7 @@ test('Phase 23: the two HUD cards are ONE shared component (identical always)', 
   assert.match(css, /:is\(\.level-chip, \.mission-chip\)\s*\{/);
   // fixed width comes from the shared token, NOT content (max-width disappeared)
   assert.match(css, /width: var\(--chip-w\)/);
-  assert.match(css, /--chip-w: clamp\(150px, 46vw, 180px\)/);
+  assert.match(css, /--chip-w: clamp\(136px, 52vw, 176px\)/);
   assert.match(css, /:root \{ --chip-w: clamp\(136px, 52vw, 176px\);\s*\}/, 'narrow phones keep the same token');
   // identical fixed box: height 52, no per-card width overrides
   assert.match(css, /min-height: 52px; height: 52px;/);

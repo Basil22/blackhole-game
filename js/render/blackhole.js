@@ -29,7 +29,7 @@ export function buildBlackHole(scene, hr) {
   // which is a closed circle from every viewing angle.
   const prGeo = new THREE.RingGeometry(hr * 1.04, hr * 1.12, 96, 1);
   const prMat = new THREE.MeshBasicMaterial({
-    color: 0xffe8c0,
+    color: 0xffe135, // Phase 30 — canary photon ring
     transparent: true,
     opacity: 0.6,
     blending: THREE.AdditiveBlending,
@@ -44,7 +44,7 @@ export function buildBlackHole(scene, hr) {
   scene.add(photonRing);
 
   // --- soft outer glow billboard ---
-  const glowSprite = makeGlowSprite(hr * 6.0, 0xffb060, 0.9);
+  const glowSprite = makeGlowSprite(hr * 6.0, 0xff3d8a, 0.9);
   glowSprite.renderOrder = -1;
   scene.add(glowSprite);
 
@@ -69,6 +69,7 @@ export function buildBlackHole(scene, hr) {
     setProximity() {},
     flash() {},
     agitate() {},
+    gulp() {}, // Phase 30 — consumption "gulp" squish (no-op legacy baseline)
   };
 }
 
@@ -77,8 +78,9 @@ function makeDiskMaterial(inner, outer) {
     uniforms: {
       uInner: { value: inner },
       uOuter: { value: outer },
-      uColor: { value: new THREE.Color(0xffb060) },
-      uColorHot: { value: new THREE.Color(0xfff2d8) },
+      // Phase 30c-2 — cartoon disk ramp: canary-hot inner → cadmium orange outer.
+      uColor: { value: new THREE.Color(0xff6b1a) },
+      uColorHot: { value: new THREE.Color(0xffe135) },
       uOpacity: { value: 0.95 },
       uTime: { value: 0 },
     },
@@ -116,6 +118,10 @@ function makeDiskMaterial(inner, outer) {
         vec3 col = mix(uColorHot, uColor, pow(t, 0.8));
         col *= falloff * beam * shimmer * uOpacity * 1.25;
 
+        vec3 scaled = col * 4.0;
+        vec3 stepped = floor(scaled + 0.5) / 4.0;
+        col = mix(col, stepped, 0.5);
+
         float alpha = falloff * beam * 0.95;
         gl_FragColor = vec4(col, alpha);
       }
@@ -133,9 +139,10 @@ function makeGlowSprite(radius, color, opacity) {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grad.addColorStop(0, 'rgba(255,190,120,0.9)');
-  grad.addColorStop(0.3, 'rgba(255,140,60,0.35)');
-  grad.addColorStop(1, 'rgba(255,120,40,0)');
+  // Phase 30 — canary heart → magenta corona → transparent edge.
+  grad.addColorStop(0, 'rgba(255,225,53,0.9)');
+  grad.addColorStop(0.3, 'rgba(255,61,138,0.35)');
+  grad.addColorStop(1, 'rgba(255,61,138,0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 256, 256);
   const tex = new THREE.CanvasTexture(canvas);

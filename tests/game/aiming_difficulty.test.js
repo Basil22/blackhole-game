@@ -10,7 +10,7 @@ import { test } from '../physics/support.js';
 import { BlackHoleWorld, createThrowTelemetry, TERMINATION } from '../../js/physics.js';
 import {
   AIM_MAPPING, aimToVelocity, aimFractions, tangFracFromDx, dxForTangFrac,
-  escapeDrag, evaluateAim, canEscape, canOrbit,
+  escapeDrag, evaluateAim, canEscape, canOrbit, OBJECT_SIM_PROFILES,
 } from '../../js/game/aiming/index.js';
 import { calculateGuidance } from '../../js/game/guidance/index.js';
 import { SCORING_CONFIG, calculateThrowScore } from '../../js/game/scoring/index.js';
@@ -115,45 +115,64 @@ test('boundaries: dx clamps to [0, tangSpan], dy clamps to [radMin, radMax]', ()
   assert.strictEqual(tangFracFromDx(10000), AIM_MAPPING.tangMax);
 });
 
-// ---- 6. THE Phase-11 regression: orbital periapsis must VARY, not saturate ----
-test('orbital variation: periapsis meaningfully spans the orbital band (no flat region)', () => {
-  // Measured physical range of the orbital band: r_p 56 (dx=40) → 384.5 (dx=258).
+// ---- 6. THE Phase-11 regression: periapsis must VARY in the sub-circular band ----
+test('orbital variation: periapsis ramps across the sub-circular band, holds at spawn past s=1.0', () => {
+  // Measured physical range: r_p 56 (dx=40) → 384.5 (= spawn R) at dx=150 (s=1.0).
   const p40 = periAt(40);
-  const p240 = periAt(240);
-  const span = p240 - p40;
-  assert.ok(span >= 250, `orbital periapsis span only ${span.toFixed(1)} (was saturating ~0)`);
-  // The old bug: dx 180–280 all produced the SAME 384.5 orbit. Assert the
-  // region now resolves:
-  const p180 = periAt(180);
+  const p140 = periAt(140);
+  const p150 = periAt(150);
+  assert.ok(p140 - p40 >= 250, `sub-circular periapsis span only ${(p140 - p40).toFixed(1)}`);
+  assert.ok(p140 < p150, `periapsis stopped rising before circular: 140=${p140.toFixed(1)} 150=${p150.toFixed(1)}`);
+  // Physics (Phase 29 reshape): a tangential prograde burn with s>1 keeps its
+  // periapsis AT the launch radius (r_p = R fixed) while ECCENTRICITY grows —
+  // the dx 150–250 region is the escape ramp (s 1.0→1.60), not the old
+  // flat-line bug. The truthful periapsis hold is asserted explicitly.
   const p200 = periAt(200);
-  const p240b = periAt(240);
-  assert.ok(p180 < p200 && p200 < p240b,
-    `old flat region still flat: 180=${p180.toFixed(1)} 200=${p200.toFixed(1)} 240=${p240b.toFixed(1)}`);
-  assert.ok(p240b - p180 >= 60, `spread over 180→240 only ${(p240b - p180).toFixed(1)}`);
+  const p250 = periAt(250);
+  assert.ok(Math.abs(p250 - p200) < 0.5,
+    `r_p should hold at spawn radius past s=1.0: 200=${p200.toFixed(1)} 250=${p250.toFixed(1)}`);
 });
 
 // ---- 7. tight orbit = precision, wide orbit = learnable ----
-test('difficulty: near-horizon zone is narrow, the orbital band is wide', () => {
+test('difficulty: near-horizon zone is narrow, the REAL orbital band is a wide mid-swipe ramp', () => {
   // r_p 42→56 (the near-horizon precision zone) must fit in a SHORT drag window…
   const d42 = dxForTangFrac(Math.sqrt(2 * (42 / R) / (1 + 42 / R)));
   const d56 = dxForTangFrac(Math.sqrt(2 * (56 / R) / (1 + 56 / R)));
   const tightWindow = d56 - d42;
   assert.ok(tightWindow <= 20, `near-horizon zone spans ${tightWindow.toFixed(1)} drag units (precision)`);
-  // …while the full orbital band (r_p 42→384.5) is a WIDE, learnable ramp.
-  const dFull = dxForTangFrac(1.0) - d42;
-  assert.ok(dFull >= 200, `orbital band spans only ${dFull.toFixed(1)} drag units`);
-  assert.ok(dFull > tightWindow * 8, 'orbital band is far wider than the precision zone');
+  // …while the REAL-sim orbital band (measured survival floor → escape rim) is
+  // a wide, learnable ramp. Every object escapes from dx 250; a rock survives
+  // an orbit from ~dx 155 (tf 1.03), softer objects from ~dx 192 (tf 1.25).
+  // The analytic-era "218-unit band" was a lie (most of it got swallowed).
+  const rockFloor = dxForTangFrac(OBJECT_SIM_PROFILES.rock.orbitFloor);
+  const humanFloor = dxForTangFrac(OBJECT_SIM_PROFILES.human.orbitFloor);
+  const escape = escapeDrag().dx;
+  assert.ok(escape - rockFloor >= 80, `rock orbital band spans only ${(escape - rockFloor).toFixed(1)} drag units`);
+  assert.ok(escape - humanFloor >= 50, `human/ship orbital band spans only ${(escape - humanFloor).toFixed(1)} drag units`);
+  assert.ok(escape - rockFloor > tightWindow * 4, 'real orbital band is far wider than the precision zone');
 });
 
-// ---- 8. escape is a deliberate gesture, harder than a circular orbit ----
-test('escape threshold: more drag than circular orbit, high-pull, deterministic', () => {
+// ---- 8. escape is a deliberate, high pull — reachable with real margin ----
+test('escape threshold: more drag than circular orbit, high-pull, deterministic, honestly reachable', () => {
   const e = escapeDrag();
   const circ = dxForTangFrac(1.0);
   assert.ok(e.dx > circ, `escapeDrag.dx=${e.dx.toFixed(1)} must exceed circular dx=${circ.toFixed(1)}`);
-  assert.ok(e.dx >= 265, `escape threshold drag ${e.dx.toFixed(1)} is a deliberate full-power pull`);
+  // Phase 29: escape begins at dx 250 (~74% of a 340-unit swipe; ≈dx 306 at the
+  // full 360px-screen edge) — a deliberate high pull, NOT the old 24-drag-unit
+  // razor's edge that demanded a full-width swipe.
+  assert.ok(e.dx >= 240, `escape threshold drag ${e.dx.toFixed(1)} is a deliberate high pull`);
   assert.ok(e.dx < AIM_MAPPING.tangSpan, 'escape reachable within the drag range');
   assert.strictEqual(guide(e.dx, e.dy).state, 'ESCAPING');
   assert.strictEqual(canEscape({ mu: MU, horizonRadius: H, pos: SPAWN, dx: e.dx, dy: e.dy }), true);
+  // Honesty: the SAME pull is ESCAPING against the measured real-sim profile,
+  // and an orbit-pull (dx 200, tf 1.30) is ORBITAL against it — not the
+  // analytic "already free" lie.
+  assert.strictEqual(
+    evaluateAim({ mu: MU, horizonRadius: H, pos: SPAWN, dx: e.dx, dy: e.dy }, OBJECT_SIM_PROFILES.rock).state,
+    'ESCAPING');
+  assert.strictEqual(
+    evaluateAim({ mu: MU, horizonRadius: H, pos: SPAWN, dx: 200, dy: 0 }, OBJECT_SIM_PROFILES.rock).state,
+    'ORBITAL');
   assert.strictEqual(canEscape({ mu: MU, horizonRadius: H, pos: SPAWN, dx: circ, dy: 0 }), false);
   assert.strictEqual(canOrbit({ mu: MU, horizonRadius: H, pos: SPAWN, dx: circ, dy: 0 }), true);
 });
@@ -304,12 +323,61 @@ test('no scoring change: score contract intact for the new envelope', () => {
   assert.ok(Number.isFinite(score.total), 'score total finite');
   assert.ok(score.total >= 0 && score.total <= score.maxTotal, `total ${score.total} in [0,${score.maxTotal}]`);
   const catSum = Object.values(score.categories).reduce((a, c) => a + c.score, 0);
-  const bonusSum = score.bonus.nearHorizonSurvival.score;
+  const bonusSum = score.bonus.nearHorizonSurvival.score + score.bonus.escapeSurvival.score;
   assert.ok(Math.abs(catSum + bonusSum - score.total) < 1e-6,
     `categories+bonus (${(catSum + bonusSum).toFixed(1)}) sum to total (${score.total.toFixed(1)})`);
 });
 
-// ---- 20. mobile parity: mapping is viewport-free, same gesture → same throw ----
+// ---- 23–24. Phase 29 honesty gate: guidance verdict === real-sim band ----
+const LOSS = new Set(['CAPTURED', 'HORIZON_CROSSING']);
+const honest = (dx, id) => evaluateAim({ mu: MU, horizonRadius: H, pos: SPAWN, dx, dy: 0 }, OBJECT_SIM_PROFILES[id]).state;
+
+test('Phase 29 honesty: guidance verdict now matches the real-sim seam for every object', () => {
+  // Seams measured against the REAL spring-mass sim at the new anchors:
+  // swallowed (dx 100 / 150), broad survivable orbit (dx 200), escape (dx 250).
+  for (const id of OBJECT_IDS) {
+    for (const dx of [100, 150, 200, 250]) {
+      const world = new BlackHoleWorld({ mu: MU, horizonRadius: H, drag: DRAG, despawnRadius: 560 });
+      build(world, id, 1);
+      launch(world, dx, 0);
+      const fin = flight(world, dx, 0, 40, TERMINATION.DESPAWN);
+      const real = fin.trajectoryState;
+      const gud = honest(dx, id);
+      if (dx <= 150) {
+        assert.ok(LOSS.has(real), `${id} dx=${dx} real sim survival promised (got ${real})`);
+        assert.ok(LOSS.has(gud), `${id} dx=${dx} guidance promised a survival (got ${gud})`);
+      } else if (dx === 200) {
+        assert.strictEqual(real, 'ORBITAL', `${id} dx=${dx} real sim not orbiting`);
+        assert.strictEqual(gud, 'ORBITAL', `${id} dx=${dx} guidance not ORBITAL`);
+      } else {
+        assert.strictEqual(real, 'ESCAPING', `${id} dx=${dx} real sim not escaping`);
+        assert.strictEqual(gud, 'ESCAPING', `${id} dx=${dx} guidance not ESCAPING`);
+      }
+    }
+  }
+});
+
+test('Phase 29 honesty: the correction actually kills the old false promises', () => {
+  // The analytic point-mass model promises ORBITAL for the whole claw of the
+  // drag range the real sim swallows. The profile correction must flip it:
+  const analytic = guide(150, 0).state;
+  assert.strictEqual(analytic, 'ORBITAL', 'analytic baseline must still be ORBITAL');
+  assert.ok(LOSS.has(honest(150, 'human')),
+    `human dx=150 must read as a loss vs the real sim, got ${honest(150, 'human')}`);
+  // …and the analytic ESCAPING sliver between √2 and the real rim (dx ~212–249)
+  // must read ORBITAL (bound), never ESCAPING — honest conservatism.
+  for (let dx = 212; dx < 250; dx += 2) {
+    const gud = honest(dx, 'rock');
+    assert.notStrictEqual(gud, 'ESCAPING',
+      `dx=${dx}: analytic claims free, but the real sim still orbits (tf ${tangFracFromDx(dx).toFixed(3)} < 1.60)`);
+  }
+  // The real escape rim is EXACTLY the new escape anchor.
+  const e = escapeDrag();
+  assert.strictEqual(honest(e.dx, 'rock'), 'ESCAPING');
+  assert.strictEqual(honest(e.dx - 1, 'rock'), 'ORBITAL', 'escapes start AT the anchor, not before');
+});
+
+// ---- 25. mobile parity: mapping is viewport-free, same gesture → same throw ----
 test('mobile parity: identical drag yields identical launch on any viewport', () => {
   const a = aim(130, 130);
   const b = aim(130, 130);

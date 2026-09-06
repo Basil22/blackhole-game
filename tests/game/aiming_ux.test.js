@@ -25,7 +25,7 @@ import {
 } from '../../js/game/guidance/path.js';
 import {
   AIM_MAPPING, aimFractions, aimToVelocity, dxForTangFrac, escapeDrag,
-  evaluateAim,
+  evaluateAim, ESCAPE_TANGF, OBJECT_SIM_PROFILES,
 } from '../../js/game/aiming/index.js';
 import { calculateGuidance } from '../../js/game/guidance/index.js';
 import { TRAJECTORY } from '../../js/physics/trajectory/states.js';
@@ -125,24 +125,26 @@ test('guidance still sees exactly the mapping launch velocity (bit-exact)', () =
 });
 
 test('aim-high cue is bound: fires while the pull is powerful but NOT yet free', () => {
-  // Phase 24: threshold 0.70 so the cue sits at tangFrac ≈ 1.34 — still a
-  // bound pass (well before escape √2 ≈ 1.414) after tangMax moved to 1.77.
+  // Phase 24: threshold 0.70. Phase 29 (envelope max 2.0): the same 0.70 reads
+  // tangFrac ≈ 1.55 — still a bound pass, ahead of the REAL-sim escape rim
+  // (ESCAPE_TANGF = 1.60), even though it sits above the analytic √2.
   const threshold = 0.70;
   const tangAtThreshold = AIM_MAPPING.tangMin + threshold * (AIM_MAPPING.tangMax - AIM_MAPPING.tangMin);
-  const escapeFrac = Math.SQRT2;
+  const escapeFrac = ESCAPE_TANGF;
   const circFrac = 1.0;
-  // the cue sits well past a circular orbit but clearly before escape
+  // the cue sits well past a circular orbit but clearly before real escape
   assert.ok(tangAtThreshold > circFrac + 0.3, `tangFrac ${tangAtThreshold.toFixed(3)} too close to circular`);
   assert.ok(tangAtThreshold < escapeFrac - 0.03, `tangFrac ${tangAtThreshold.toFixed(3)} should precede escape`);
   // power01 is a pure monotone reading of dx — find the crossing, verify it is
-  // still a BOUND pass (the cue precedes the "free" gesture by design).
+  // still a BOUND pass vs the REAL sim (the cue precedes the "free" gesture).
   let cross = -1;
   for (let dx = 0; dx <= AIM_MAPPING.tangSpan; dx++) {
     if (aimFractions({ dx, dy: 0 }).power01 >= threshold) { cross = dx; break; }
   }
   assert.ok(cross > 0 && cross < escapeDrag().dx,
     `crossing dx=${cross} must be a deliberate pull before escape (${escapeDrag().dx})`);
-  const st = guide(cross, 0).state;
+  const st = evaluateAim({ mu: MU, horizonRadius: H, pos: SPAWN, dx: cross, dy: 0 },
+    OBJECT_SIM_PROFILES.rock).state;
   assert.ok(st === 'ORBITAL' || st === 'CAPTURED',
     `crossing drag classified ${st}, expected bound (cue must precede escape)`);
 });

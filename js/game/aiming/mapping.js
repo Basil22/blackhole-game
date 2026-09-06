@@ -1,43 +1,52 @@
-// game/aiming/mapping.js — PURE input→launch mapping (Phase 13 control envelope).
+// game/aiming/mapping.js — PURE input→launch mapping (Phase 13 control envelope,
+// re-anchored by the Phase-29 gameplay balance pass).
 // Three.js-free, DOM-free, deterministic, O(1). Turns the slingshot drag
 // (aim.dx / aim.dy) into the launch velocity around the black hole.
 //
 // Physics-derived (not invented): spawn R≈384.5, vCirc≈178.8, escape at the
-// spawn = √2·vCirc ≈ 1.414 multiples of vCirc. Pre-Phase-11 the mapping only
-// reached 0.35–0.52 vCirc → escape (≥1.41) and orbit (~1.0) were OUTSIDE the
-// control envelope: every throw was CAPTURED and BREAK FREE / FIND THE ORBIT
-// were impossible.
+// spawn = √2·vCirc ≈ 1.414 multiples of vCirc (analytic point-mass). The REAL
+// spring-mass sim (tidal energy losses, in-flight drag) needs MORE: measured
+// bisection of the real sim says the true all-object escape threshold is
+// tangFrac ≈ 1.60 (5/5 ESCAPING for rock/human/ship/planet; 1.59 is still
+// marginal for the planet), and real survival (a non-consumed outcome) starts
+// at ~1.03 (rock) / ~1.25–1.27 (human, ship, planet). Pre-Phase-11 the mapping
+// only reached 0.35–0.52 vCirc → escape and orbit were OUTSIDE the control
+// envelope: every throw was CAPTURED and BREAK FREE / FIND THE ORBIT were
+// impossible.
 //
-// Phase 13 redesign: the old linear tangFrac ramp made periapsis SATURATE at
-// the spawn radius across roughly dx 180–280 (a huge flat ORBITAL region that
-// produced essentially one identical wide orbit), and the top of the drag range
-// (dx≈340–365) was dead (tangFrac clipped at 1.62 at both ends). This mapping
-// keeps the same envelope (0.35–1.77 vCirc across 340 drag units, same gesture,
-// same exported API) but reshapes the response into a deterministic, continuous,
-// monotone curve that is LINEAR IN PERIAPSIS across the orbital band:
+// Phase 13 redesign (kept): the old linear tangFrac ramp made periapsis SATURATE
+// at the spawn radius across roughly dx 180–280 (a huge flat ORBITAL region).
+// This mapping is a deterministic, continuous, monotone curve that is LINEAR IN
+// PERIAPSIS across the sub-circular band. Phase 29 gameplay balance re-anchored
+// the curve to the MEASURED real-sim bands so every mission is reachable by a
+// learnable gesture, and the brutal "full-width 360px swipe or fail" escape wall
+// is gone:
 //
-//   dx 0–25        : r_p 25→42  — trivial capture (short accidental pulls)
-//   dx 25–40       : r_p 42→56  — the near-horizon PRECISION zone (tight orbit;
+//   dx 0–25        : r_p 25→42    — trivial capture (short accidental pulls)
+//   dx 25–40       : r_p 42→56    — the near-horizon PRECISION zone (tight orbit;
 //                     every drag unit ≈ 1 unit of closest approach)
-//   dx 40–258      : r_p 56→384.5 (= spawn R) — one orbit = one periapsis, no
+//   dx 40–150      : r_p 56→384.5 (= spawn R) — one orbit = one periapsis, no
 //                     saturation: every drag unit moves the closest approach a
 //                     comparable, visible amount (learnable/reproducible skill)
-//   dx 258–272     : s 1.0→√2  — the escape-triggering ramp is deliberately
-//                     SHORT, so escape is a full-power gesture you must choose
-//   dx 272–340     : s √2→1.77 — post-escape power for a comfortable BREAK FREE
-//                    (tangMax raised to 1.77 so a full-width 360px mobile drag,
-//                     ~dx 306 → tangFrac ~1.59, clears the real-sim escape
-//                     threshold ~1.590 for all objects); see the tangMax note above.
+//   dx 150–250     : s 1.0→1.60   — escape ramp spanning the REAL orbital band:
+//                     rock survives from ~1.03 (≈dx 155), soft objects from
+//                     ~1.25–1.27 (≈dx 192–196), ESCAPING from 1.60 (dx 250)
+//   dx 250–340     : s 1.60→2.0   — comfortable post-escape power (BREAK FREE
+//                     starts at 250 = ~82% of a full-width 360px drag ≈ dx 306,
+//                     with real margin below the screen edge; tangMax 2.0 adds a
+//                     deep-escape fling tail that is desktop-only on narrow phones)
 //
 // The periapsis↔s conversion is the exact orbit equation at the calibration
 // radius R: x = r_p/R, s = √(2x/(1+x)) — an object launched tangentially at
-// s·vCirc has periapsis r_p (s=1.0 → exact circular orbit at R, s≥√2 → escape).
+// s·vCirc has periapsis r_p (s=1.0 → exact circular orbit at R; the analytic
+// point-mass escape is s≥√2, but the REAL sim escapes at s≈1.60 as measured).
 // The curve anchors are baked from R=384.5 (the fixed game spawn radius); the
 // mapping is otherwise physics-independent. The radFrac (dy) axis is unchanged:
 // dy>0 dives inward (tightens r_p), dy<0 swings outward.
 //
 //   tangFrac* vCirc  : tangential speed — LOW power → deep held capture,
-//                      ~1.0 → orbit, ≥√2 → escape. Monotonic in aim.dx.
+//                      ~1.0 → a wide swing, ≥1.60 → real-sim escape. Monotonic
+//                      in aim.dx.
 //   radFrac* vCirc   : radial-inward speed (points toward the hole). Base 0 →
 //                      a straight hard pull reads ESCAPING; dy<0 (pull up /
 //                      outward bias) also helps. Monotonic in aim.dy.
@@ -60,18 +69,20 @@ export const tangFracForRp = (rp) => {
   return Math.sqrt((2 * x) / (1 + x));
 };
 
+// The measured real-sim escape threshold: the lowest tangential multiple at
+// which EVERY object (rock/human/ship/planet, size 1, dy 0) escapes the hole
+// with the actual spring-mass physics (bisection of the real sim, 5/5 runs).
+export const ESCAPE_TANGF = 1.60;
+
 export const AIM_MAPPING = Object.freeze({
   // Tangential speed as a multiple of v_circ at the spawn radius.
   tangMin: 0.35,              // lowest power — held close-pass / capture
-  tangMax: 1.77,              // comfortably past escape (√2 ≈ 1.4142). Real-sim escape
-  // (with in-flight drag losses) lands ~tangFrac 1.590 — above the analytic √2
-  // threshold — so the envelope's top end is set here. This keeps the contract
-  // ("a full-width gesture reaches escape on mobile alike"): on a 360px viewport
-  // a full-width drag reaches ~dx 306 → tangFrac 1.59 → real-sim ESCAPING for
-  // every object. Previous tangMax values (1.62, 1.65) only reached escape at
-  // dx≥324 which is physically unreachable on a 360px screen (max pointer travel
-  // yields dx≈306). No physics constants change; only the mapping's post-escape
-  // ceiling is raised.
+  tangMax: 2.0,               // comfortably past the REAL escape threshold. Real-sim
+  // escape (tidal + drag losses) is ~1.60 v_circ minus the analytic √2 — measured
+  // by bisecting the full spring-mass sim (5/5 ESCAPING at 1.60 for every object,
+  // planet needs ≥1.60). The old tangMax 1.77 still reached REAL escape only at
+  // dx≈306 of a 360px swipe (the elastic razor's edge the Phase-29 breakdown
+  // removed); 2.0 gives the post-escape ramp a wide, forgiving plateau.
   tangSpan: 340,              // aim.dx units to sweep tangMin → tangMax
   // Radial-inward speed as a multiple of v_circ. Base 0 → a straight pull is
   // negligibly infalling; the +yBias adds the tiny outward k that reads ESCAPING.
@@ -80,14 +91,15 @@ export const AIM_MAPPING = Object.freeze({
   radMax: 0.42,               // dy>0 → deep deliberate dive (precision captures)
   radGain: 0.00087,
   yBias: 3.2,                 // fixed vertical lift, preserved from the old mapping
-  // Phase 13 curve anchors (drag units). The orbital band is expressed via
-  // periapsis (see tangFracForRp) so closest approach stays ~linear in dx,
-  // never saturating before the spawn radius.
+  // Curve anchors (drag units). The sub-circular band is expressed via periapsis
+  // (see tangFracForRp) so closest approach stays ~linear in dx, never saturating
+  // before the spawn radius. The escape anchor is the MEASURED real-sim threshold,
+  // NOT the analytic √2 — the honest answer to "where does escape actually begin".
   curve: Object.freeze({
     captureAt: Object.freeze({ dx: 25, periapsis: 42 }),        // r_p 25→42   capture → orbit seam
     precisionAt: Object.freeze({ dx: 40, periapsis: 56 }),      // r_p 42→56   near-horizon precision zone
-    circularAt: Object.freeze({ dx: 258, periapsis: R_CAL }),   // r_p 56→384.5 orbital ramp (s=1.0)
-    escapeAt: Object.freeze({ dx: 272, tangFrac: Math.SQRT2 }), // s 1.0→√2    short deliberate escape ramp
+    circularAt: Object.freeze({ dx: 150, periapsis: R_CAL }),   // r_p 56→384.5 sub-circular ramp (s=1.0)
+    escapeAt: Object.freeze({ dx: 250, tangFrac: ESCAPE_TANGF }), // 1.0→1.60  real-sim escape ramp (~dx 250)
   }),
 });
 
@@ -187,7 +199,9 @@ export function dxForTangFrac(f, cfg = AIM_MAPPING) {
   return escapeAt.dx + ((f2 - escapeAt.tangFrac) / (cfg.tangMax - escapeAt.tangFrac)) * (cfg.tangSpan - escapeAt.dx);
 }
 
-// Drag needed to sit exactly at the escape threshold (√2 · vCirc tangential).
+// Drag needed to sit exactly at the REAL-sim escape threshold (tangFrac
+// ESCAPE_TANGF — the measured threshold where every object actually escapes,
+// NOT the analytic point-mass √2).
 export function escapeDrag(cfg = AIM_MAPPING) {
-  return { dx: dxForTangFrac(Math.SQRT2), dy: 0 };
+  return { dx: dxForTangFrac(ESCAPE_TANGF, cfg), dy: 0 };
 }

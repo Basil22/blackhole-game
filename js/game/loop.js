@@ -60,6 +60,13 @@ export function startLoop(game) {
     for (let i = game.objects.length - 1; i >= 0; i--) {
       const o = game.objects[i];
       o.visualizer.update(o.world);
+      // Comic-book stretch word: once per object, presentational read of the
+      // live telemetry (initialSpan>0 means the object has a deformable span;
+      // 1.3 is clearly stretched but safely below every break strain).
+      if (o.telemetry.initialSpan > 0 && o.telemetry.maxStretch >= 1.3 && !o._comicStretch) {
+        o._comicStretch = true;
+        game.comic?.show('stretch', { object: o.kind, world: o.telemetry.lastPosition });
+      }
       if (o.world.aliveCount() === 0) {
         // Finalize telemetry from what actually happened before disposal.
         const reason = terminationFrom(o.telemetry.consumedPointCount, o.telemetry.initialPointCount);
@@ -70,6 +77,7 @@ export function startLoop(game) {
         // (never captured, never torn apart) gets one quiet rising tone.
         if (reason === TERMINATION.DESPAWN && game.lastTelemetry.trajectoryState === 'ESCAPING') {
           game.audio?.escape();
+          game.comic?.show('escape', { object: o.kind, world: o.telemetry.lastPosition });
         }
         if (game.onThrowEnded) game.onThrowEnded(game.lastTelemetry, game.lastScore);
         o.visualizer.dispose();
@@ -101,6 +109,8 @@ function handleEvents(game, o, events) {
       // Restrained snap; throttled in the feedback layer so a spring cascade
       // can never become a machine-gun. Object kind biases the timbre.
       game.audio?.tear({ object: o.kind });
+      // Comic-book rip (cooldown-throttled; presentation only).
+      game.comic?.show('tear', { object: o.kind, world: ev.pos });
     } else if (ev.type === 'consume') {
       o.telemetry.recordConsumption(o.world.bodies[ev.index].mass);
       // Glow at the horizon rim where matter visibly disappears — sized to
@@ -109,8 +119,15 @@ function handleEvents(game, o, events) {
       game.particles.horizonRim(ev.pos, o.world.horizonRadius, o.meta?.baseRadius || 0);
       // Cinematic response: one short brightness kick on the hole set-piece.
       game.scene.bh?.flash();
+      // Phase 30 — the cartoon "gulp": the void swells then settles as it eats.
+      game.scene.bh?.gulp?.();
       // Deep gravitational drop as matter is consumed.
       game.audio?.capture();
+      // Comic-book engulfing moment: once per object per throw.
+      if (!o._comicCapture) {
+        o._comicCapture = true;
+        game.comic?.show('capture', { object: o.kind, world: ev.pos });
+      }
     }
   }
 }

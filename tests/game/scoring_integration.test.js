@@ -5,6 +5,7 @@ import assert from 'node:assert';
 import { test } from '../physics/support.js';
 import { pointThrow, objectThrow } from '../physics/telemetry_helpers.js';
 import { calculateThrowScore } from '../../js/game/scoring/index.js';
+import { aimToVelocity, escapeDrag } from '../../js/game/aiming/index.js';
 
 test('real consumed throw scores: precision/survival 0, tidal/destruction observed, finite total', () => {
   const { result } = pointThrow({ x: 0, y: 0, z: 300 }, { x: 0, y: 0, z: -120 }, { seconds: 40 });
@@ -41,4 +42,36 @@ test('every row sums exactly to total for real telemetry too', () => {
   const r = calculateThrowScore(result);
   const sum = r.breakdown.reduce((s, row) => s + row.score, 0);
   assert.strictEqual(sum, r.total);
+});
+
+// Phase 29: a REAL escape against the real sim earns the HARD-WON ESCAPE bonus
+// (threading the rim), and a real plunge never does. The escape velocity at the
+// spawn radius is √(2μ/R); launch tangentially at ~1.14× that — the game's real
+// escape rim (tangFrac 1.60) — via the production mapping so the telemetry is
+// exactly what the game would produce.
+test('real escape earns the hard-won escape bonus; a real plunge never does', () => {
+  const launch = aimToVelocity({
+    mu: 12.288e6,
+    pos: { x: 0, y: 19.2, z: 384 },
+    dx: escapeDrag().dx,   // 250 — the MEASURED real-sim escape anchor
+    dy: 0,
+  });
+  // objectThrow's default drag is 0.1; the game's is 0.1/1.6 (scaled scene).
+  const opts = { seconds: 40, size: 1, drag: 0.1 / 1.6 };
+  const esc = objectThrow('rock', launch, opts);
+  assert.strictEqual(esc.result.trajectoryState, 'ESCAPING', 'real sim must escape at the anchor');
+  const escScore = calculateThrowScore(esc.result);
+  assert.ok(escScore.bonus.escapeSurvival.eligible, 'real escape eligible');
+  assert.ok(escScore.bonus.escapeSurvival.score > 0,
+    `real escape should earn the bonus, got ${escScore.bonus.escapeSurvival.score}`);
+  assert.ok(escScore.bonus.escapeSurvival.velocityRatio > 1.05
+    && escScore.bonus.escapeSurvival.velocityRatio < 1.35,
+    `velocityRatio ${escScore.bonus.escapeSurvival.velocityRatio.toFixed(3)} near the rim`);
+
+  // A swallowed plunge (dx 100, dy 0) — deep capture — must never claim it.
+  const plunge = objectThrow('rock', aimToVelocity({ mu: 12.288e6, pos: { x: 0, y: 19.2, z: 384 }, dx: 100, dy: 0 }), opts);
+  const plungeScore = calculateThrowScore(plunge.result);
+  assert.strictEqual(plungeScore.bonus.escapeSurvival.score, 0, 'plunge must not earn the escape bonus');
+  assert.ok(escScore.bonus.escapeSurvival.score > plungeScore.bonus.escapeSurvival.score,
+    'the escape out-scores the plunge on the escape bonus');
 });

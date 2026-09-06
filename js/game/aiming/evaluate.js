@@ -10,13 +10,17 @@ import { aimToVelocity } from './mapping.js';
 
 // Classify what a drag from `pos` would do: returns the full guidance result
 // (+ mapping diagnostics) for the plain launch state. pos/vel are {x,y,z}.
-export function evaluateAim({ mu, horizonRadius = 40, pos, dx, dy }) {
+// `simProfile` ({orbitFloor, escapeAt} — see simProfile.js) corrects the
+// verdict to the measured real-sim bands when the object is known; without it
+// the pure point-mass analytic verdict is returned.
+export function evaluateAim({ mu, horizonRadius = 40, pos, dx, dy }, simProfile) {
   const mapped = aimToVelocity({ mu, pos, dx, dy });
   const guidance = calculateGuidance({
     mu,
     horizonRadius,
     pos: { x: pos.x, y: pos.y, z: pos.z },
     vel: { x: mapped.x, y: mapped.y, z: mapped.z },
+    simProfile,
   });
   return {
     ...guidance,
@@ -28,12 +32,14 @@ export function evaluateAim({ mu, horizonRadius = 40, pos, dx, dy }) {
 }
 
 // True when a drag of this tangential power can possibly reach ESCAPING from
-// `pos` — i.e. the mapping (not just energy) permits escape today.
-export function canEscape({ mu, pos, dx, dy }) {
-  return evaluateAim({ mu, pos, dx, dy }).state === 'ESCAPING';
+// `pos` — i.e. the mapping (not just energy) permits escape today. Honest vs
+// the real sim when `simProfile` is supplied (see evaluateAim).
+export function canEscape({ mu, pos, dx, dy }, simProfile) {
+  return evaluateAim({ mu, pos, dx, dy }, simProfile).state === 'ESCAPING';
 }
 
 // True when a drag lands in the ORBITAL band (bound, periapsis above horizon).
-export function canOrbit({ mu, pos, dx, dy }) {
-  return evaluateAim({ mu, pos, dx, dy }).state === 'ORBITAL';
+// Honest vs the real sim when `simProfile` is supplied (see evaluateAim).
+export function canOrbit({ mu, pos, dx, dy }, simProfile) {
+  return evaluateAim({ mu, pos, dx, dy }, simProfile).state === 'ORBITAL';
 }

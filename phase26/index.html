@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Phase 26 — Black Hole Visual Prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  #stage { position: fixed; inset: 0; }
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    color: #cdd; font: 12px/1.5 ui-monospace, monospace;
+    padding: 8px 12px; background: rgba(0,0,0,.45);
+    display: flex; gap: 16px; flex-wrap: wrap; pointer-events: none;
+  }
+  #hud b { color: #ffd07d; }
+</style>
+</head>
+<body>
+<div id="hud">PHASE 26 PROTOTYPE · <span id="hstat">loading…</span></div>
+<div id="stage"></div>
+<script src="../js/vendor-three.min.js"></script>
+<script type="module">
+  import { boot, PARAMS } from './harness.js';
+  const p = await boot();
+  const el = document.getElementById('hstat');
+  const upd = () => {
+    const s = p.getStats();
+    el.innerHTML = `<b>${s.mode}</b> · q=${s.quality} · ${s.viewport} · ${s.fps} fps · ${s.frameMs}ms · ${s.draws} draws · ${s.tris} tris · progs=${s.programs}`;
+  };
+  setInterval(upd, 250);
+  upd();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'q') { p.setQuality('low'); upd(); }
+    if (e.key === 'e') { p.setQuality('medium'); upd(); }
+    if (e.key === 'r') { p.setQuality('high'); upd(); }
+  });
+</script>
+</body>
+</html>
