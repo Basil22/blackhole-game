@@ -60,17 +60,20 @@ export function buildStar(world, pos, opts = {}) {
   // cohesive shell: connect each surface point to center + neighbors.
   // rest lengths come from the actual geometry so big clusters (size > BH)
   // scale correctly instead of exploding on the hardcoded neighbor rest.
+  // NOTE: indices[0] = center, indices[1..n] = surface points. We must use
+  // absolute body indices (indices[k]), not raw loop counters, so springs
+  // connect to the correct bodies even when the world already has bodies.
   for (let i = 1; i <= n; i++) {
-    world.addSpringLen(center, i, radius, stiffness, damping, breakStrain, color);
+    world.addSpringLen(indices[0], indices[i], radius, stiffness, damping, breakStrain, color);
   }
   for (let i = 1; i <= n; i++) {
     const j = i === n ? 1 : i + 1;
-    world.addSpring(i, j, stiffness * 0.8, damping, shellBreakStrain, color);
+    world.addSpring(indices[i], indices[j], stiffness * 0.8, damping, shellBreakStrain, color);
   }
   if (brace) {
     for (let i = 1; i <= n; i++) {
       const j = ((i + 1) % n) + 1;
-      world.addSpring(i, j, stiffness * 0.6, damping, shellBreakStrain, color);
+      world.addSpring(indices[i], indices[j], stiffness * 0.6, damping, shellBreakStrain, color);
     }
   }
   return indices;

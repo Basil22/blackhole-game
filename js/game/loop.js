@@ -78,6 +78,7 @@ export function startLoop(game) {
     }
     if (game.state === 'flying' && game.objects.length === 0) {
       game.state = 'idle';
+      game._releaseWakeLock();
       game.onUiState({ state: 'idle', consumed: true });
     }
 

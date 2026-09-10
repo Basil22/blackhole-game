@@ -60,6 +60,9 @@ export class Game {
     this.spawnPos = SPAWN.clone();
 
     this._disposed = false;
+    // Screen Wake Lock: prevent dimming/lock during active gameplay (aim/fly).
+    // Acquired on beginAim, released on idle. No-op when API is unavailable.
+    this._wakeLock = null;
 
     this.aimArrow = new AimArrow(this.scene.scene);
     this.trajPath = new TrajectoryPath(this.scene.scene, { horizonRadius: this.config.horizonRadius });
@@ -129,6 +132,7 @@ export class Game {
     if (!this.currentId) return;
     if (this.onBeginAim) this.onBeginAim();   // dismiss any prior throw result
     this.audio?.aimStart();
+    this._acquireWakeLock();
     this._spawnHeld();          // show the object at full scale, sitting at spawn
     this.state = 'aim';
     this.aim.active = false;
@@ -199,6 +203,7 @@ export class Game {
   }
 
   disposeObject() {
+    this._releaseWakeLock();
     // Player cut the throw short — finalize any in-flight telemetry as such.
     for (const o of this.objects) {
       if (o.telemetry) {
@@ -232,6 +237,7 @@ export class Game {
   // disposeObject() path as audio-silent stay intact.
   cancelAim() {
     if (this.state !== 'aim') return;
+    this._releaseWakeLock();
     this._disposeHeld();
     this._clearGuidance();
     this.aim.active = false;
@@ -293,6 +299,16 @@ export class Game {
     this._lastGuideVel = null;
     this.trajPath.hide();
     this.guideHud.hide();
+  }
+
+  // ---------- wake lock ----------
+  async _acquireWakeLock() {
+    if (this._wakeLock || !navigator.wakeLock) return;
+    try { this._wakeLock = await navigator.wakeLock.request('screen'); } catch { /* ignore */ }
+  }
+
+  _releaseWakeLock() {
+    if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
   }
 
   // ---------- resize / dispose ----------

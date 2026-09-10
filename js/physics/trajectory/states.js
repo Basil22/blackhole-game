@@ -36,7 +36,8 @@ const TOL_DEFAULT = 1e-9;
 // Classify {pos, vel} under a black hole of `mu` / `horizonRadius`.
 export function classifyTrajectory({ mu, pos, vel, horizonRadius, energyTol = TOL_DEFAULT }) {
   const r = V3.length(pos);
-  if (!Number.isFinite(mu) || !Number.isFinite(r) || !V3.length(vel) || !Number.isFinite(V3.length(vel)) ||
+  const vLen = V3.length(vel);
+  if (!Number.isFinite(mu) || !Number.isFinite(r) || r === 0 || !Number.isFinite(vLen) ||
       !Number.isFinite(pos.x) || !Number.isFinite(pos.y) || !Number.isFinite(pos.z)) {
     return makeResult(TRAJECTORY.UNKNOWN, null, null);
   }

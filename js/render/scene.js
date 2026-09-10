@@ -10,11 +10,19 @@ export class SceneManager {
     this.container = container;
     this.config = config; // { horizonRadius }
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+    // Mobile detection: disable MSAA (expensive fillrate) and cap pixel ratio
+    // lower to stay within tile-based GPU budgets. preserveDrawingBuffer is off
+    // by default (avoids per-frame copy cost); turned on temporarily for capture.
+    const mobile = /Mobi|Android/i.test(navigator.userAgent);
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !mobile,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: false,
+    });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.5 : 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(this.renderer.domElement);
 

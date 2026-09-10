@@ -12,7 +12,7 @@ export class BlackHoleWorld {
     this.mu = opts.mu ?? 12.288e6;             // gravitational parameter GM
     this.horizonRadius = opts.horizonRadius ?? 40;
     this.softening = opts.softening ?? 0.1;    // gravity singularity guard
-    this.dt = opts.dt ?? 1 / 240;              // fixed physics timestep
+    this.dt = opts.dt ?? 1 / 240;              // fixed physics timestep (must match PHYS_DT in game/sim.js)
     this.substeps = opts.substeps ?? 2;        // sub-steps per world step
     this.gravity = opts.gravity ?? true;
     this.drag = opts.drag ?? 0.0;              // linear velocity damping 0..1

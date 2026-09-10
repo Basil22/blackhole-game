@@ -5,14 +5,15 @@
 import { V3 } from './vec3.js';
 
 // Gravitational acceleration at `pos` (BH at origin): a = -mu * r / |r|^3,
-// softened with eps so near-zero distance cannot blow up (a -> 0 as r -> 0,
-// and r < 1e-6 is skipped entirely). Writes into `out` (no allocation).
+// softened with Plummer softening so near-zero distance cannot blow up
+// (a -> 0 as r -> 0, and r < 1e-6 is skipped entirely).
+// Plummer: a = -mu * r / (r^2 + eps^2)^(3/2). Writes into `out` (no alloc).
 export function gravityAcceleration(w, out, pos) {
   const r2 = V3.lengthSq(pos);
   if (r2 < 1e-6) { out.x = 0; out.y = 0; out.z = 0; return out; }
   const eps2 = w.softening * w.softening;
-  const inv = 1 / (r2 + eps2);
-  const mag = w.mu * inv / Math.sqrt(r2); // mu/r^3 (softened) -> a = mu*r/r^3 = mu/r^2
+  const denom = r2 + eps2;
+  const mag = w.mu / (denom * Math.sqrt(denom)); // mu / (r^2+eps^2)^(3/2)
   out.x = -mag * pos.x;
   out.y = -mag * pos.y;
   out.z = -mag * pos.z;

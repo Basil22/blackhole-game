@@ -261,6 +261,9 @@ export class UI {
   // capture/share pair.
   async _capture() {
     this.setHudVisible(false);
+    // preserveDrawingBuffer is off for performance; force a fresh render so
+    // the framebuffer contains the current scene when toBlob reads it.
+    this.game.scene.render();
     this.game.scene.renderer.domElement.toBlob(async (blob) => {
       if (!blob) { this.setHudVisible(true); return; }
       const name = `blackhole_${Date.now()}.png`;

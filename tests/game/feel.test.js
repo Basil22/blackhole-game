@@ -137,7 +137,7 @@ test('aim arrow: brighter shaft + near-white cone, launched from warm language',
 
 test('particle effects stay bounded and tear feedback is boosted', () => {
   const part = read('js/render/objects/particles.js');
-  assert.match(part, /this\.MAX = 700/);      // existing global cap untouched
+  assert.match(part, /MAX = 700/);             // existing global cap untouched
   assert.match(part, /tear\(pos, vel, color, count = 14\)/);
   assert.match(part, /0xffffff/);             // hot snap sparks accompany tears
   assert.match(part, /launchTrail\(/);

@@ -1,4 +1,7 @@
 // game/sim.js — fixed-timestep time integration for the game loop.
+// PHYS_DT is the single source of truth for the physics timestep.
+// BlackHoleWorld.dt defaults to the same value (1/240) but callers should
+// use this constant when configuring or referencing the step size.
 
 export const PHYS_DT = 1 / 240;
 const MAX_STEPS = 6;
