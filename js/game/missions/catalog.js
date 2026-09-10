@@ -1,4 +1,5 @@
-// game/missions/catalog.js — the curated Phase-7 mission set.
+// game/missions/catalog.js — the curated mission set.
+// 12 missions, ordered easy → hard. Every 6 completions unlock the next object.
 // Plain declarative definitions only; every shape satisfies isValidMission.
 // No physics, no scoring, no UI — this is pure content the evaluator consumes.
 
@@ -7,28 +8,58 @@ import { MISSION_TYPES, MISSION_STATES } from './mission.js';
 const S = MISSION_STATES;
 
 export const MISSION_CATALOG = Object.freeze([
+  // ────────────────── TIER 1: Missions 1-6 (easy → moderate) ──────────────────
+  // Complete all 6 to unlock the astronaut.
+
+  {
+    id: 'capture-01',
+    title: 'Feed the Void',
+    description: 'Send the object into the black hole.',
+    type: MISSION_TYPES.STATE,
+    state: S.HORIZON_CROSSING,
+    difficulty: 1,
+    recommendedObjectIds: Object.freeze(['rock', 'planet']),
+    hint: 'Aim straight at the center — the black hole swallows anything that gets close enough.',
+  },
   {
     id: 'near-horizon-01',
     title: 'Touch the Edge',
-    description: 'Pass within 1.5× the event horizon.',
+    description: 'Pass within 2× the event horizon.',
     type: MISSION_TYPES.NEAR_HORIZON,
-    target: 1.5,
-    // Phase-10 challenge metadata — declarative presentation only. difficulty
-    // is a 1..5 tier, recommendedObjectIds are existing object ids, hint is a
-    // player-facing tip. None of these affect the evaluator or completion.
+    target: 2.0,
     difficulty: 1,
     recommendedObjectIds: Object.freeze(['rock', 'human']),
-    hint: 'Your goal is precision — a close pass counts even if the horizon takes the object.',
+    hint: 'Aim near the black hole but not straight in — a close pass counts.',
   },
   {
-    id: 'escape-01',
-    title: 'Break Free',
-    description: 'Escape the black hole.',
+    id: 'flyby-01',
+    title: 'Gravity Assist',
+    description: 'Slingshot past the black hole without being captured.',
     type: MISSION_TYPES.STATE,
-    state: S.ESCAPING,
-    difficulty: 5,
+    state: S.FLYBY,
+    difficulty: 2,
     recommendedObjectIds: Object.freeze(['rock', 'human']),
-    hint: "Speed matters more than accuracy — a hard, wide launch is the only way out.",
+    hint: 'A moderate sideways throw with some speed will bend around the hole and escape.',
+  },
+  {
+    id: 'score-01',
+    title: 'First Points',
+    description: 'Score at least 500 points.',
+    type: MISSION_TYPES.SCORE,
+    target: 500,
+    difficulty: 2,
+    recommendedObjectIds: Object.freeze(['rock', 'human']),
+    hint: 'A close pass that stretches the object earns precision + tidal points.',
+  },
+  {
+    id: 'tear-01',
+    title: 'Tear It Apart',
+    description: 'Rip the object — get at least 1 tear.',
+    type: MISSION_TYPES.TEAR_COUNT,
+    target: 1,
+    difficulty: 2,
+    recommendedObjectIds: Object.freeze(['rock', 'planet']),
+    hint: 'Get the object close enough and tidal forces will pull it apart.',
   },
   {
     id: 'orbit-01',
@@ -36,52 +67,73 @@ export const MISSION_CATALOG = Object.freeze([
     description: 'Achieve a stable orbital trajectory.',
     type: MISSION_TYPES.STATE,
     state: S.ORBITAL,
-    difficulty: 4,
-    recommendedObjectIds: Object.freeze(['ship', 'planet']),
-    hint: 'Try a sideways launch — nudge it into a loop instead of a fatal plunge.',
+    difficulty: 3,
+    recommendedObjectIds: Object.freeze(['rock', 'ship']),
+    hint: 'A sideways throw at the right speed can loop around instead of falling in or flying away.',
   },
+
+  // ────────────────── TIER 2: Missions 7-12 (moderate → hard) ──────────────────
+  // Complete all 12 to unlock the ship. Planet unlocks after level progression.
+
   {
-    id: 'capture-01',
-    title: 'Into the Abyss',
-    description: 'Have the object cross the event horizon.',
-    // Telemetry reports HORIZON_CROSSING the moment the object is consumed /
-    // crosses the horizon (finalizeThrow: consumption wins over the analytic
-    // verdict) — so this is the honest state to match, not CAPTURED.
-    type: MISSION_TYPES.STATE,
-    state: S.HORIZON_CROSSING,
-    difficulty: 1,
-    recommendedObjectIds: Object.freeze(['planet', 'rock']),
-    hint: 'Aim straight in — the horizon will swallow whatever you send.',
-  },
-  {
-    id: 'survive-near-horizon-01',
-    title: 'Grazing the Void',
-    description: 'Pass within 1.5× the event horizon without being fully consumed.',
-    type: MISSION_TYPES.SURVIVE_NEAR_HORIZON,
+    id: 'near-horizon-02',
+    title: 'Precision Pass',
+    description: 'Pass within 1.5× the event horizon.',
+    type: MISSION_TYPES.NEAR_HORIZON,
     target: 1.5,
     difficulty: 3,
-    recommendedObjectIds: Object.freeze(['ship', 'human']),
-    hint: 'Close is not enough — the pass only counts if the object wasn\'t fully consumed.',
+    recommendedObjectIds: Object.freeze(['rock', 'human']),
+    hint: 'Closer than Touch the Edge — thread the needle just outside the event horizon.',
   },
   {
-    id: 'score-01',
-    title: 'Make It Count',
-    description: 'Score at least 1,200 points.',
-    type: MISSION_TYPES.SCORE,
-    target: 1200,
-    difficulty: 2,
+    id: 'stretch-01',
+    title: 'Spaghettify',
+    description: 'Stretch an object to 2× its original size.',
+    type: MISSION_TYPES.STRETCH,
+    target: 2.0,
+    difficulty: 3,
+    recommendedObjectIds: Object.freeze(['human', 'ship']),
+    hint: 'A close pass stretches the object — the closer you get, the more it pulls apart.',
+  },
+  {
+    id: 'escape-01',
+    title: 'Break Free',
+    description: 'Escape the black hole entirely.',
+    type: MISSION_TYPES.STATE,
+    state: S.ESCAPING,
+    difficulty: 4,
     recommendedObjectIds: Object.freeze(['rock', 'human']),
-    hint: 'A deliberate close pass that stretches the object stacks precision, tidal, and survival — enough to crack 1,200 if you thread the rim cleanly.',
+    hint: 'A hard, fast throw aimed outward is the only way to escape gravity.',
+  },
+  {
+    id: 'tear-02',
+    title: 'Demolition Expert',
+    description: 'Rip the object apart at least 4 times.',
+    type: MISSION_TYPES.TEAR_COUNT,
+    target: 4,
+    difficulty: 4,
+    recommendedObjectIds: Object.freeze(['planet', 'ship']),
+    hint: 'Multi-point objects (planet, ship) can tear many times on a deep plunge.',
   },
   {
     id: 'score-02',
-    title: 'High Roller',
-    description: 'Score at least 3,000 points.',
+    title: 'Score Master',
+    description: 'Score at least 2,000 points.',
     type: MISSION_TYPES.SCORE,
-    target: 3000,
+    target: 2000,
     difficulty: 4,
+    recommendedObjectIds: Object.freeze(['ship', 'planet']),
+    hint: 'Stack precision + tidal + destruction — a close tearing pass with survival is the dream throw.',
+  },
+  {
+    id: 'score-03',
+    title: 'High Roller',
+    description: 'Score at least 4,000 points.',
+    type: MISSION_TYPES.SCORE,
+    target: 4000,
+    difficulty: 5,
     recommendedObjectIds: Object.freeze(['planet', 'ship']),
-    hint: 'Stack every category: a max-power near-horizon pass that tears free deep mass, tears plenty, and still returns — the full house of a Black Hole throw.',
+    hint: 'You need everything: near-horizon precision, maximum spaghettification, many tears, and survival. The perfect throw.',
   },
 ]);
 

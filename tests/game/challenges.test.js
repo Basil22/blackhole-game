@@ -101,18 +101,18 @@ test('recommendation exists for every mission and is deterministic', () => {
 });
 
 test('recommendation prefers the mission declared object list', () => {
-  const m = getMission('capture-01'); // recommendedObjectIds ['planet','rock']
+  const m = getMission('capture-01'); // recommendedObjectIds ['rock','planet']
   const r = getRecommendedObject(m, LIVE_CATALOG);
-  assert.strictEqual(r.objectId, 'planet', 'first declared recommendation wins');
+  assert.strictEqual(r.objectId, 'rock', 'first declared recommendation wins');
 });
 
 test('recommendation skips un-injected objects and falls back over profiles', () => {
-  // planet is absent from this catalog → mission prefers 'rock' next
+  // rock is absent from this catalog → mission prefers 'planet' next
   const m = getMission('capture-01');
-  const catalog = LIVE_CATALOG.filter((o) => o.id !== 'planet');
+  const catalog = LIVE_CATALOG.filter((o) => o.id !== 'rock');
   const r = getRecommendedObject(m, catalog);
-  assert.strictEqual(r.objectId, 'rock', 'falls back to next available declared object');
-  assert.ok(r.reason.includes('EASY'), 'reason reflects the object difficulty tier');
+  assert.strictEqual(r.objectId, 'planet', 'falls back to next available declared object');
+  assert.ok(r.reason.includes('EXTREME'), 'reason reflects the object difficulty tier');
 });
 
 test('recommendation falls back to a profile-recommended object when mission list absent', () => {
@@ -187,7 +187,7 @@ test('isKnownMission / getMissionChallenge behave defensively', () => {
   assert.strictEqual(isKnownMission('not-a-mission'), false);
   const ch = getMissionChallenge('orbit-01');
   assert.ok(ch && ch.mission.id === 'orbit-01', 'challenge view for a known mission');
-  assert.strictEqual(ch.difficulty.label, 'HARD', 'difficulty label matches');
+  assert.strictEqual(ch.difficulty.label, 'CHALLENGING', 'difficulty label matches');
   assert.strictEqual(getMissionChallenge('not-a-mission'), null, 'unknown → null');
   assert.strictEqual(getMissionChallenge(null), null, 'garbage → null');
   const d1 = missionDifficulty(1);

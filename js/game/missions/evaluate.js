@@ -62,6 +62,10 @@ export function evaluateMission(mission, { telemetry, score } = {}) {
       return evaluateSurviveNearHorizon(mission, telemetry, score);
     case MISSION_TYPES.SCORE:
       return evaluateScore(mission, telemetry, score);
+    case MISSION_TYPES.TEAR_COUNT:
+      return evaluateTearCount(mission, telemetry);
+    case MISSION_TYPES.STRETCH:
+      return evaluateStretch(mission, telemetry);
     default:
       return fail(mission.id, `unsupported type ${mission.type}`);
   }
@@ -153,6 +157,36 @@ function evaluateScore(mission, telemetry, score) {
     reason: completed
       ? `Scored ${Math.round(total)}`
       : `Scored ${Math.round(Number.isFinite(total) ? total : 0)} — need ${target}`,
+  };
+}
+
+// TEAR_COUNT — complete when the object tore at least `target` times.
+function evaluateTearCount(mission, telemetry) {
+  const tears = Math.floor(Number.isFinite(telemetry.tearCount) ? telemetry.tearCount : 0);
+  const target = Math.floor(mission.target);
+  const completed = tears >= target;
+  return {
+    missionId: mission.id,
+    completed,
+    progress: target > 0 ? norm01(tears / target) : 0,
+    reason: completed
+      ? `Tore ${tears} time${tears !== 1 ? 's' : ''}`
+      : `Tore ${tears} — need ${target}`,
+  };
+}
+
+// STRETCH — complete when the object stretched to at least `target`× its size.
+function evaluateStretch(mission, telemetry) {
+  const stretch = Number.isFinite(telemetry.maximumStretch) ? telemetry.maximumStretch : 1;
+  const target = mission.target;
+  const completed = stretch >= target;
+  return {
+    missionId: mission.id,
+    completed,
+    progress: target > 1 ? norm01((stretch - 1) / (target - 1)) : (stretch >= target ? 1 : 0),
+    reason: completed
+      ? `Stretched to ${stretch.toFixed(1)}×`
+      : `Stretched to ${stretch.toFixed(1)}× — need ${target}×`,
   };
 }
 

@@ -24,9 +24,10 @@ import {
 } from '../../js/game/progression/index.js';
 import { MISSION_CATALOG } from '../../js/game/missions/index.js';
 
-const FIRST = 'near-horizon-01';
-const SECOND = 'escape-01';
-const FINAL = 'score-02';
+const FIRST = 'capture-01';
+const SECOND = 'near-horizon-01';
+const THIRD = 'flyby-01';
+const FINAL = 'score-03';
 
 test('initial state: only the first mission is unlocked and current', () => {
   const s = createInitialProgressionState();
@@ -41,16 +42,8 @@ test('initial state: only the first mission is unlocked and current', () => {
   assert.ok(!isCampaignComplete(s));
 });
 
-test('MISSION_ORDER has the exact 6 spec missions in order (Phase 24: Grazing optional)', () => {
-  // Phase 24: survive-near-horizon-01 ("Grazing the Void") left the forced order —
-  // real-sim shows it is physically unreachable near the horizon (binary horizon:
-  // every ≤1.5×HR pass consumes; human has zero partial survivals), so keeping it
-  // in the chain stranded players and made the campaign unwinnable. It remains in
-  // the catalog as an OPTIONAL badge, so order ⊂ catalog now.
-  assert.deepStrictEqual(
-    [...MISSION_ORDER],
-    ['near-horizon-01', 'escape-01', 'capture-01', 'orbit-01', 'score-01', 'score-02'],
-  );
+test('MISSION_ORDER has exactly 12 missions matching the catalog', () => {
+  assert.strictEqual(MISSION_ORDER.length, 12);
   assert.ok(MISSION_ORDER.length <= MISSION_CATALOG.length, 'order never exceeds catalog');
   for (const id of MISSION_ORDER) assert.ok(MISSION_CATALOG.some((m) => m.id === id), `${id} exists in catalog`);
 });
@@ -69,13 +62,13 @@ test('first completion unlocks exactly ONE next mission and makes it current', (
   assert.strictEqual(state.lastCompletedMissionId, FIRST);
   assert.ok(isMissionCompleted(state, FIRST));
   assert.ok(isMissionUnlocked(state, SECOND));
-  assert.ok(!isMissionUnlocked(state, 'capture-01'), 'only one mission unlocks at a time');
+  assert.ok(!isMissionUnlocked(state, THIRD), 'only one mission unlocks at a time');
   assert.ok(!isCampaignComplete(state));
 });
 
 test('locked missions cannot be completed (no-op, no unlock)', () => {
   const s = createInitialProgressionState();
-  const { state, unlockedMissionId } = completeMission(s, 'capture-01');
+  const { state, unlockedMissionId } = completeMission(s, THIRD);
   assert.strictEqual(state, s, 'state reference unchanged');
   assert.strictEqual(unlockedMissionId, null);
   assert.deepStrictEqual(state.completedMissionIds, []);
@@ -92,35 +85,34 @@ test('replay of a completed mission never re-unlocks or duplicates', () => {
 
 test('any unlocked mission can be completed first (not just current)', () => {
   let s = createInitialProgressionState();
-  s = selectMission(s, 'capture-01');           // force-unlock is not allowed, so:
   s = completeMission(s, FIRST).state;           // 1) beat mission 1 → unlock 2
   s = completeMission(s, SECOND).state;          // 2) beat mission 2 → unlock 3
-  s = selectMission(s, 'capture-01');            // 3) select mission 3 (now unlocked)
-  const { state, unlockedMissionId } = completeMission(s, 'capture-01');
-  assert.strictEqual(unlockedMissionId, 'orbit-01', 'next-after-capture unlocks (Phase 24: orbit follows capture)');
-  assert.deepStrictEqual(state.completedMissionIds, [FIRST, SECOND, 'capture-01']);
-  assert.strictEqual(state.currentMissionId, 'orbit-01', 'newly unlocked becomes current');
+  s = selectMission(s, THIRD);                   // 3) select mission 3 (now unlocked)
+  const { state, unlockedMissionId } = completeMission(s, THIRD);
+  assert.strictEqual(unlockedMissionId, 'score-01', 'next-after-flyby unlocks');
+  assert.deepStrictEqual(state.completedMissionIds, [FIRST, SECOND, THIRD]);
+  assert.strictEqual(state.currentMissionId, 'score-01', 'newly unlocked becomes current');
 });
 
 test('out-of-order completions never skip ahead in the order', () => {
   let s = createInitialProgressionState();
-  s = completeMission(s, FIRST).state;           // unlock escape-01
-  s = completeMission(s, SECOND).state;          // unlock capture-01
-  // completing near-horizon-01 again is a replay — no unlock
+  s = completeMission(s, FIRST).state;           // unlock SECOND
+  s = completeMission(s, SECOND).state;          // unlock THIRD
+  // completing FIRST again is a replay — no unlock
   const { state, unlockedMissionId } = completeMission(s, FIRST);
   assert.strictEqual(state, s);
   assert.strictEqual(unlockedMissionId, null);
-  assert.strictEqual(state.currentMissionId, 'capture-01');
+  assert.strictEqual(state.currentMissionId, THIRD);
 });
 
-test('completing every mission unlocks all 6 and marks campaignComplete', () => {
+test('completing every mission unlocks all 12 and marks campaignComplete', () => {
   let s = createInitialProgressionState();
   for (const id of MISSION_ORDER) {
     const r = completeMission(s, id);
     s = r.state;
   }
-  assert.strictEqual(s.unlockedMissionIds.length, 6);
-  assert.strictEqual(s.completedMissionIds.length, 6);
+  assert.strictEqual(s.unlockedMissionIds.length, 12);
+  assert.strictEqual(s.completedMissionIds.length, 12);
   assert.strictEqual(s.currentMissionId, FINAL);
   assert.strictEqual(s.lastCompletedMissionId, FINAL);
   assert.ok(isCampaignComplete(s));
@@ -168,7 +160,7 @@ test('getCurrentMission / getNextMissionId reflect state', () => {
   assert.strictEqual(getNextMissionId(s), SECOND);
   const c = completeMission(s, FIRST).state;
   assert.strictEqual(getCurrentMission(c).id, SECOND);
-  assert.strictEqual(getNextMissionId(c), 'capture-01');
+  assert.strictEqual(getNextMissionId(c), THIRD);
   let done = createInitialProgressionState();
   for (const id of MISSION_ORDER) done = completeMission(done, id).state;
   assert.strictEqual(getNextMissionId(done), null);
@@ -186,9 +178,9 @@ test('normalize passes a valid stored state through unchanged', () => {
 
 test('normalize strips unknown mission ids', () => {
   const s = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: 'bogus-99',
-    unlockedMissionIds: ['near-horizon-01', 'not-a-mission', 7],
+    unlockedMissionIds: [FIRST, 'not-a-mission', 7],
     completedMissionIds: ['nope'],
   });
   assert.deepStrictEqual(s.unlockedMissionIds, [FIRST]);
@@ -198,7 +190,7 @@ test('normalize strips unknown mission ids', () => {
 
 test('normalize strips duplicate ids', () => {
   const n = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: FIRST,
     unlockedMissionIds: [FIRST, FIRST, SECOND, SECOND],
     completedMissionIds: [],
@@ -208,7 +200,7 @@ test('normalize strips duplicate ids', () => {
 
 test('normalize forces completed inside unlocked', () => {
   const n = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: FIRST,
     unlockedMissionIds: [FIRST],
     completedMissionIds: [FIRST, SECOND],
@@ -219,7 +211,7 @@ test('normalize forces completed inside unlocked', () => {
 
 test('normalize forces current inside unlocked', () => {
   const n = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: FINAL,
     unlockedMissionIds: [FIRST],
     completedMissionIds: [],
@@ -229,7 +221,7 @@ test('normalize forces current inside unlocked', () => {
 
 test('normalize recomputes campaignComplete instead of trusting it', () => {
   const n = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: FIRST,
     unlockedMissionIds: [FIRST],
     completedMissionIds: [],
@@ -257,7 +249,7 @@ test('normalize falls back to initial on future version', () => {
 
 test('normalize falls back to initial when nothing valid is unlocked', () => {
   const n = normalizeProgressionState({
-    version: 1,
+    version: PROGRESSION_VERSION,
     currentMissionId: 'zzz',
     unlockedMissionIds: [],
     completedMissionIds: [],
@@ -268,10 +260,10 @@ test('normalize falls back to initial when nothing valid is unlocked', () => {
 
 test('normalize is idempotent', () => {
   const messy = {
-    version: 1,
-    currentMissionId: 'escape-01',
-    unlockedMissionIds: ['near-horizon-01', 'escape-01', 'escape-01', 'wat'],
-    completedMissionIds: ['near-horizon-01', 'near-horizon-01', 'escape-01'],
+    version: PROGRESSION_VERSION,
+    currentMissionId: SECOND,
+    unlockedMissionIds: [FIRST, SECOND, SECOND, 'wat'],
+    completedMissionIds: [FIRST, FIRST, SECOND],
   };
   const once = normalizeProgressionState(messy);
   assert.deepStrictEqual(normalizeProgressionState(once), once);
@@ -353,24 +345,24 @@ test('Progression: selecting unlocks persist and lock gate blocks', () => {
   const store = new Map();
   const fake = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   const p = new Progression({ storage: fake });
-  assert.ok(!p.select('escape-01'), 'locked select is a no-op');
-  p.complete('near-horizon-01');                 // current now escape-01
-  assert.ok(p.select('near-horizon-01'), 'reselect an unlocked-but-not-current mission');
-  assert.strictEqual(p.state.currentMissionId, 'near-horizon-01');
+  assert.ok(!p.select(SECOND), 'locked select is a no-op');
+  p.complete(FIRST);                             // current now SECOND
+  assert.ok(p.select(FIRST), 'reselect an unlocked-but-not-current mission');
+  assert.strictEqual(p.state.currentMissionId, FIRST);
   const q = new Progression({ storage: fake });
-  assert.strictEqual(q.state.currentMissionId, 'near-horizon-01');
+  assert.strictEqual(q.state.currentMissionId, FIRST);
 });
 
 test('Progression: replay after persistence does not re-unlock', () => {
   const store = new Map();
   const fake = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   const p = new Progression({ storage: fake });
-  p.complete('near-horizon-01');
-  const before = JSON.stringify(store);
-  const replay = p.complete('near-horizon-01');
+  p.complete(FIRST);
+  const before = JSON.stringify([...store]);
+  const replay = p.complete(FIRST);
   assert.ok(!replay.changed);
   assert.strictEqual(replay.unlockedMissionId, null);
-  assert.strictEqual(JSON.stringify(store), before, 'replay writes nothing to storage');
+  assert.strictEqual(JSON.stringify([...store]), before, 'replay writes nothing to storage');
 });
 
 test('Progression: reset wipes storage and restores initial', () => {
@@ -381,8 +373,8 @@ test('Progression: reset wipes storage and restores initial', () => {
     removeItem: (k) => store.delete(k),
   };
   const p = new Progression({ storage: fake });
-  p.complete('near-horizon-01');
-  p.complete('escape-01');
+  p.complete(FIRST);
+  p.complete(SECOND);
   assert.deepStrictEqual(p.state.completedMissionIds.length, 2);
   p.reset();
   assert.deepStrictEqual(p.state, createInitialProgressionState());
@@ -401,15 +393,15 @@ test('Progression: full campaign → snapshot reports campaignComplete and is fr
   assert.throws(() => { s.campaignComplete = false; }, TypeError, 'snapshot frozen');
   // snapshot mutation never touches the live controller
   assert.ok(p.snapshot.campaignComplete);
-  assert.ok(p.isCompleted('score-02'));
+  assert.ok(p.isCompleted(FINAL));
 });
 
 test('Progression is purely driven by completed flag (no telemetry/score coupling)', () => {
   const p = new Progression({ storage: null });
   // complete() ignores anything but the id — pass nothing else and assert the
   // controller never introduced telemetry/score reading at the API surface.
-  p.complete('near-horizon-01');
-  assert.deepStrictEqual(p.state.completedMissionIds, ['near-horizon-01']);
+  p.complete(FIRST);
+  assert.deepStrictEqual(p.state.completedMissionIds, [FIRST]);
   assert.ok(!('telemetry' in p.state) && !('score' in p.state), 'state stores no telemetry/score');
   assert.ok(!('guidance' in p.state) && !('physics' in p.state));
 });

@@ -286,9 +286,9 @@ test('no mission change: near-horizon / escape / orbit drags complete their miss
     const r = evaluateMission(getMission(c.id), { telemetry: fin, score });
     assert.strictEqual(r.completed, true, `${c.id} not completed: ${r.reason}`);
   }
-  // catalog thresholds untouched by the envelope change
+  // catalog ids present and in expected order
   const ids = MISSION_CATALOG.map((m) => m.id).join(',');
-  assert.strictEqual(ids, 'near-horizon-01,escape-01,orbit-01,capture-01,survive-near-horizon-01,score-01,score-02');
+  assert.strictEqual(ids, 'capture-01,near-horizon-01,flyby-01,score-01,tear-01,orbit-01,near-horizon-02,stretch-01,escape-01,tear-02,score-02,score-03');
 });
 
 // ---- 19. no scoring change: categories still sum to a capped total ----

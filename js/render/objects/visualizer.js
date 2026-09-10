@@ -127,7 +127,8 @@ export class ObjectVisualizer {
     _dir.copy(_v2).sub(_v1);
     const len = _dir.length() || 1e-4;
     p.mesh.position.copy(_mid);
-    _quat.setFromUnitVectors(_up, _dir.clone().normalize());
+    _dir.normalize();
+    _quat.setFromUnitVectors(_up, _dir);
     p.mesh.quaternion.copy(_quat);
     p.mesh.scale.set(p.chord, len, p.thick);
   }

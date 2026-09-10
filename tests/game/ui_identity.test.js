@@ -22,7 +22,7 @@ import { icon, iconForObject, iconNames } from '../../js/ui/icons.js';
 import { CATALOG } from '../../js/objects.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
 
 // Strict emoji detection — pictographs + variation selectors + classic emoji
 // ranges. Geometric text glyphs used by the difficulty dots (● ○) are excluded

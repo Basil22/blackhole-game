@@ -9,32 +9,29 @@
 
 import { getMission } from '../missions/index.js';
 
-// Authoritative, fixed order — never derived from catalog/catalog insertion.
-//       1 near-horizon-01 (Touch the Edge)
-//       2 escape-01        (Break Free)
-//       3 capture-01       (Into the Abyss)
-//       4 orbit-01         (Find the Orbit)
-//       5 score-01         (Make It Count)
-//       6 score-02         (High Roller)
-//
-// NOTE (Phase 24): survive-near-horizon-01 ("Grazing the Void") was REMOVED from
-// the forced order. Real-sim evidence: the horizon is binary — every close pass
-// (≤1.5×HR) consumes the object (human has zero partial survivals near the hole;
-// rock/ship/planet shed mass but all end HORIZON_CROSSING) — so no throw is both
-// close and survived. Keeping it in the forced chain stranded players on step 4
-// and made the progression campaign unwinnable on human/ship/planet paths. It
-// stays in the mission CATALOG as an optional (rock-reachable) side badge; it is
-// simply not part of the linear unlock ladder.
+// Authoritative, fixed order — 12 missions, easy → hard.
+// Every 6 completions unlock the next object tier.
+//   Tier 1 (1-6):  Rock only → completing all 6 unlocks Astronaut
+//   Tier 2 (7-12): Harder missions → completing all 12 unlocks Ship
+// Planet unlocks via campaign levels.
 export const MISSION_ORDER = Object.freeze([
-  'near-horizon-01',
-  'escape-01',
-  'capture-01',
-  'orbit-01',
-  'score-01',
-  'score-02',
+  // Tier 1 — easy → moderate
+  'capture-01',       // Feed the Void (easiest)
+  'near-horizon-01',  // Touch the Edge (2× horizon)
+  'flyby-01',         // Gravity Assist
+  'score-01',         // First Points (500)
+  'tear-01',          // Tear It Apart (1 tear)
+  'orbit-01',         // Find the Orbit
+  // Tier 2 — moderate → hard
+  'near-horizon-02',  // Precision Pass (1.5× horizon)
+  'stretch-01',       // Spaghettify (2×)
+  'escape-01',        // Break Free
+  'tear-02',          // Demolition Expert (4 tears)
+  'score-02',         // Score Master (2000)
+  'score-03',         // High Roller (4000)
 ]);
 
-export const PROGRESSION_VERSION = 1;
+export const PROGRESSION_VERSION = 2;
 
 export function createInitialProgressionState() {
   const first = MISSION_ORDER[0];

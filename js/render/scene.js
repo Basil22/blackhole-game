@@ -5,6 +5,9 @@ import { buildLights } from './lights.js';
 import { makeStarLayer } from './starfield.js';
 import { buildBlackHole } from './blackhole.js';
 
+const _spinQ = new THREE.Quaternion();
+const _zAxis = new THREE.Vector3(0, 0, 1);
+
 export class SceneManager {
   constructor(container, config) {
     this.container = container;
@@ -70,7 +73,15 @@ export class SceneManager {
     if (this.stars2) this.stars2.rotation.y += dt * 0.0015;
     // photon ring always faces the camera -> full circle from any angle
     if (this.photonRing) this.photonRing.quaternion.copy(this.camera.quaternion);
-    if (this.bh?.lensGroup) this.bh.lensGroup.quaternion.copy(this.camera.quaternion);
+    // Lens group: billboard + gentle Z-spin (spin set by bh.update)
+    if (this.bh?.lensGroup) {
+      const lg = this.bh.lensGroup;
+      const spinZ = lg.userData.spinZ || 0; // stashed by bh.update()
+      lg.quaternion.copy(this.camera.quaternion);
+      // Apply Z-spin on top of the billboard orientation
+      _spinQ.setFromAxisAngle(_zAxis, spinZ);
+      lg.quaternion.multiply(_spinQ);
+    }
   }
 
   render() {

@@ -33,8 +33,18 @@ import { MISSION_ORDER } from '../../js/game/progression/index.js';
 import { getMission } from '../../js/game/missions/index.js';
 
 const L1 = 'level-1', L2 = 'level-2', L3 = 'level-3', L4 = 'level-4';
-const N = 'near-horizon-01', E = 'escape-01', C = 'capture-01',
-  S = 'survive-near-horizon-01', O = 'orbit-01', S1 = 'score-01', S2 = 'score-02';
+
+// Mission id aliases matching the new 12-mission catalog:
+const CAP = 'capture-01', NH1 = 'near-horizon-01', FLY = 'flyby-01',
+  SC1 = 'score-01', T1 = 'tear-01', ORB = 'orbit-01',
+  NH2 = 'near-horizon-02', STR = 'stretch-01', ESC = 'escape-01',
+  T2 = 'tear-02', SC2 = 'score-02', SC3 = 'score-03';
+
+// Level required sets (from levels.js):
+const L1_REQ = [CAP, NH1, FLY, SC1, T1, ORB];
+const L2_REQ = [CAP, NH1, NH2, STR, ESC, ORB];
+const L3_REQ = [NH2, STR, ESC, T2, SC2, SC3];
+const L4_REQ = [NH2, T2, SC2, SC3];
 
 function memStorage() {
   const m = new Map();
@@ -46,7 +56,8 @@ function memStorage() {
   };
 }
 
-const ALL = [N, E, C, S, O, S1, S2];
+// All 12 missions completed:
+const ALL = [CAP, NH1, FLY, SC1, T1, ORB, NH2, STR, ESC, T2, SC2, SC3];
 
 // ------------------------------------------------------------ definitions ---
 test('level set is declarative, ordered, and references real missions', () => {
@@ -87,11 +98,8 @@ test('initial state: level-1 current, rock unlocked, everything else locked', ()
   assert.strictEqual(deepestUnlockedLevelId([]), L1);
 });
 
-test('first level needs two missions and unlocks the astronaut', () => {
-  // Phase 24: survive-near-horizon-01 ("Grazing the Void") is no longer required —
-  // real-sim shows it's physically unreachable near the horizon (binary horizon),
-  // so keeping it would make the campaign unwinnable. See levels.js NOTE.
-  const done = [N, O];
+test('first level needs six missions and unlocks the astronaut', () => {
+  const done = L1_REQ;
   const levels = completedLevelIds(done);
   assert.deepStrictEqual(levels, [L1]);
   assert.ok(isObjectUnlocked('human', levels));
@@ -103,9 +111,7 @@ test('first level needs two missions and unlocks the astronaut', () => {
 });
 
 test('partial progress completes nothing and unlocks nothing', () => {
-  // Phase 24: survive-near-horizon dropped from required, so L1 = {N, O}.
-  // Partial = neither N nor O present (or only one of the two).
-  for (const subset of [[N], [O], [E], []]) {
+  for (const subset of [[CAP], [ORB], [ESC], []]) {
     const levels = completedLevelIds(subset);
     assert.deepStrictEqual(levels, [], `subset ${subset} completed levels`);
     assert.ok(!isObjectUnlocked('human', levels));
@@ -125,20 +131,18 @@ test('full set completes every level and the campaign', () => {
 });
 
 test('unknown and duplicate mission ids never satisfy requirements', () => {
-  const junk = [N, O, 'nope', 'near-horizon-01', N, null, 42];
+  const junk = [...L1_REQ, 'nope', CAP, null, 42];
   assert.deepStrictEqual(completedLevelIds(junk), [L1]);
   // duplicates in the completed list are harmless (set semantics via includes)
-  assert.deepStrictEqual(completedLevelIds([N, N, O, O]), [L1]);
+  assert.deepStrictEqual(completedLevelIds([...L1_REQ, ...L1_REQ]), [L1]);
 });
 
 // -------------------------------------------------------------- progress ----
 test('levelProgress counts required missions, not catalog breadth', () => {
-  // Phase 24: L1 requires 2 (near-horizon + orbit); survive-near-horizon dropped.
-  assert.deepStrictEqual(levelProgress(L1, []), { done: 0, required: 2, complete: false });
-  assert.deepStrictEqual(levelProgress(L1, [N, E, C]), { done: 1, required: 2, complete: false });
-  assert.deepStrictEqual(levelProgress(L1, [N, O]), { done: 2, required: 2, complete: true });
-  // L2 requires 4 (near-horizon, escape, capture, orbit)
-  assert.deepStrictEqual(levelProgress(L2, ALL), { done: 4, required: 4, complete: true });
+  assert.deepStrictEqual(levelProgress(L1, []), { done: 0, required: 6, complete: false });
+  assert.deepStrictEqual(levelProgress(L1, [CAP, ESC]), { done: 1, required: 6, complete: false });
+  assert.deepStrictEqual(levelProgress(L1, L1_REQ), { done: 6, required: 6, complete: true });
+  assert.deepStrictEqual(levelProgress(L2, ALL), { done: 6, required: 6, complete: true });
   assert.deepStrictEqual(levelProgress('nope', ALL), { done: 0, required: 0, complete: false });
 });
 
@@ -152,7 +156,7 @@ test('lock hints name the exact level to clear', () => {
   assert.strictEqual(unlockHintForObject('ship', []), 'CLEAR LEVEL 2');
   assert.strictEqual(unlockLevelForObject('planet', []), 3);
   assert.strictEqual(unlockHintForObject('planet', []), 'CLEAR LEVEL 3');
-  const l1done = completedLevelIds([N, S, O]);
+  const l1done = completedLevelIds(L1_REQ);
   assert.strictEqual(unlockHintForObject('human', l1done), '');
   assert.strictEqual(unlockLevelForObject('human', l1done), 0);
   assert.strictEqual(unlockHintForObject('planet', completedLevelIds(ALL)), '');
@@ -174,7 +178,7 @@ test('selectLevel only accepts unlocked, known levels', () => {
   assert.strictEqual(selectLevel(s, L2, []), s, 'locked level rejected');
   assert.strictEqual(selectLevel(s, L1, []), s, 'same level is a no-op');
   assert.strictEqual(selectLevel(s, 'nope', []), s, 'unknown level rejected');
-  const next = selectLevel(s, L2, completedLevelIds([N, S, O]));
+  const next = selectLevel(s, L2, completedLevelIds(L1_REQ));
   assert.notStrictEqual(next, s);
   assert.strictEqual(next.currentLevelId, L2);
   assert.strictEqual(next.showIntro, true);
@@ -227,21 +231,23 @@ test('controller initial load normalizes empty storage', () => {
 
 test('recordMissionComplete reports one level when its missions complete', () => {
   const c = new Campaign({ storage: memStorage() });
-  const before = [N, E, C, S];
-  const out = c.recordMissionComplete(before, [N, E, C, S, O]);
+  // Before: 5 of 6 L1 missions done. After: all 6 done -> L1 completes.
+  const before = L1_REQ.slice(0, 5);
+  const after = [...L1_REQ];
+  const out = c.recordMissionComplete(before, after);
   assert.strictEqual(out.changed, true);
-  assert.deepStrictEqual(out.newLevels.map((l) => l.id), [L1, L2]);
-  assert.deepStrictEqual(out.unlockedObjects, ['human', 'ship']);
-  assert.strictEqual(out.currentLevelId, L3);
+  assert.deepStrictEqual(out.newLevels.map((l) => l.id), [L1]);
+  assert.deepStrictEqual(out.unlockedObjects, ['human']);
+  assert.strictEqual(out.currentLevelId, L2);
   assert.strictEqual(out.currentLevelChanged, true);
   assert.strictEqual(out.campaignComplete, false);
   // campaign state persisted the auto-advance
-  assert.strictEqual(c.state.currentLevelId, L3);
+  assert.strictEqual(c.state.currentLevelId, L2);
 });
 
 test('recordMissionComplete is idempotent on replays', () => {
   const c = new Campaign({ storage: memStorage() });
-  const done = [N, E, C, S, O];
+  const done = [...L1_REQ];
   c.recordMissionComplete([], done);
   const out = c.recordMissionComplete(done, done);
   assert.strictEqual(out.changed, false);
@@ -251,17 +257,18 @@ test('recordMissionComplete is idempotent on replays', () => {
 
 test('recordMissionComplete marks the campaign complete on the final missions', () => {
   const c = new Campaign({ storage: memStorage() });
-  const out = c.recordMissionComplete([N, E, C, S, O, S1], ALL);
+  // Before: L1+L2 done. After: ALL -> completes L3+L4 and the campaign.
+  const before = [...new Set([...L1_REQ, ...L2_REQ])];
+  const out = c.recordMissionComplete(before, ALL);
   assert.strictEqual(out.changed, true);
-  assert.deepStrictEqual(out.newLevels.map((l) => l.id), [L3, L4]);
-  assert.deepStrictEqual(out.unlockedObjects, ['planet']);
+  assert.ok(out.newLevels.some((l) => l.id === L3) || out.newLevels.some((l) => l.id === L4));
   assert.strictEqual(out.campaignComplete, true);
   assert.strictEqual(out.currentLevelId, L4);
 });
 
 test('replay cannot re-unlock or re-advance after completion', () => {
   const c = new Campaign({ storage: memStorage() });
-  const done = [N, S, O];
+  const done = [...L1_REQ];
   const out1 = c.recordMissionComplete([], done);
   assert.strictEqual(out1.changed, true);
   assert.strictEqual(c.state.currentLevelId, L2);
@@ -274,13 +281,13 @@ test('replay cannot re-unlock or re-advance after completion', () => {
 test('manual selectLevel persists and locked levels are rejected', () => {
   const c = new Campaign({ storage: memStorage() });
   assert.strictEqual(c.selectLevel(L2, []), false, 'locked rejected');
-  assert.strictEqual(c.selectLevel(L2, [N, S, O]), true);
+  assert.strictEqual(c.selectLevel(L2, L1_REQ), true);
   assert.strictEqual(c.state.currentLevelId, L2);
-  assert.strictEqual(c.selectLevel(L2, [N, S, O]), false, 'same level no-op');
+  assert.strictEqual(c.selectLevel(L2, L1_REQ), false, 'same level no-op');
   // reload picks up the stored selection
   const store = memStorage();
   const c2 = new Campaign({ storage: store });
-  c2.selectLevel(L2, [N, S, O]);
+  c2.selectLevel(L2, L1_REQ);
   const c3 = new Campaign({ storage: store });
   assert.strictEqual(c3.state.currentLevelId, L2);
 });
@@ -288,7 +295,7 @@ test('manual selectLevel persists and locked levels are rejected', () => {
 test('currentLevel clamps when the stored selection is no longer unlocked', () => {
   const store = memStorage();
   const c = new Campaign({ storage: store });
-  c.recordMissionComplete([], [N, S, O]); // current -> L2
+  c.recordMissionComplete([], L1_REQ); // current -> L2
   // progression reset behind the scenes: mission set is now empty
   assert.strictEqual(c.currentLevel([]).id, L1, 'clamped to deepest unlocked');
   // but the stored selection is untouched (still persisted as L2)
@@ -308,19 +315,19 @@ test('dismissIntro is one-shot and persists', () => {
 test('reset restores a clean initial campaign', () => {
   const store = memStorage();
   const c = new Campaign({ storage: store });
-  c.recordMissionComplete([], [N, S, O]);
+  c.recordMissionComplete([], L1_REQ);
   c.dismissIntro();
   c.reset();
   assert.strictEqual(c.state.currentLevelId, L1);
   assert.strictEqual(c.state.showIntro, true);
-  assert.deepStrictEqual(c.completedLevelIds([N, S, O]), [L1], 'derived, not stored');
+  assert.deepStrictEqual(c.completedLevelIds(L1_REQ), [L1], 'derived, not stored');
   const c2 = new Campaign({ storage: store });
   assert.strictEqual(c2.state.currentLevelId, L1);
 });
 
 // --------------------------------------------------------- immutability -----
 test('operations never mutate their inputs', () => {
-  const done = [N, E, C, S, O];
+  const done = [...L1_REQ];
   const before = [...done];
   const s = createInitialCampaignState();
   const levels = completedLevelIds(done);

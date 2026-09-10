@@ -39,6 +39,7 @@ const STATIC_ASSETS = [
   './js/render/objects/geometry.js',
   './js/render/objects/particles.js',
   './js/render/objects/visualizer.js',
+  './js/render/comicfx.js',
   './js/ui/icons.js',
   './js/ui/theme.js',
   './js/audio/index.js',

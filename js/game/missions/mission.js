@@ -10,6 +10,8 @@ export const MISSION_TYPES = Object.freeze({
   NEAR_HORIZON: 'NEAR_HORIZON',
   SCORE: 'SCORE',
   SURVIVE_NEAR_HORIZON: 'SURVIVE_NEAR_HORIZON',
+  TEAR_COUNT: 'TEAR_COUNT',       // target = minimum tear count
+  STRETCH: 'STRETCH',             // target = minimum stretch ratio (e.g. 2.0 = 2×)
 });
 
 // Reuse the EXACT trajectory/telemetry state vocabulary (ESCAPING/FLYBY/ORBITAL/
