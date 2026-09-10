@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="favicon.ico" />
-  <title>BLACK HOLE — Spaghettification Sandbox</title>
+  <title>Black Hole — Spaghettification Sandbox</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -14,12 +14,12 @@
   <div id="vignette"></div>
 
   <!-- Phase 20: opening / title experience -->
-  <div id="opening" role="group" aria-label="BLACK HOLE — title screen">
+  <div id="opening" role="group" aria-label="Black Hole — title screen">
     <div class="opening-box">
-      <h1 class="opening-brand">BLACK HOLE</h1>
-      <p class="opening-sub">SPACE STUDIO</p>
-      <button id="opening-play" class="ctrl-btn primary opening-play" type="button">PLAY</button>
-      <button id="opening-settings" class="ctrl-btn opening-settings" type="button" aria-label="Open settings">SETTINGS</button>
+      <h1 class="opening-brand">Black Hole</h1>
+      <p class="opening-sub">Space Studio</p>
+      <button id="opening-play" class="ctrl-btn primary opening-play" type="button">Play</button>
+      <button id="opening-settings" class="ctrl-btn opening-settings" type="button" aria-label="Open settings">Settings</button>
       <p id="opening-skip-hint" class="opening-hint">Want to skip the intro? Enable Skip Intro in Settings.</p>
     </div>
   </div>
@@ -35,15 +35,15 @@
   <!-- HUD bottom -->
   <div id="hud">
     <div id="size-row">
-      <label for="size-slider">SIZE</label>
+      <label for="size-slider">Size</label>
       <input id="size-slider" type="range" min="0.3" max="10" step="0.1" value="1" />
       <span id="size-val">1.0×</span>
     </div>
     <div id="zoom-row">
-      <label for="zoom-slider">ZOOM</label>
-      <span class="zoom-side" aria-hidden="true">OUT</span>
+      <label for="zoom-slider">Zoom</label>
+      <span class="zoom-side" aria-hidden="true">Out</span>
       <input id="zoom-slider" type="range" min="0" max="100" step="1" value="10" />
-      <span class="zoom-side" aria-hidden="true">IN</span>
+      <span class="zoom-side" aria-hidden="true">In</span>
       <span id="zoom-val">61</span>
     </div>
     <div id="object-info" class="hint"></div>
@@ -55,10 +55,10 @@
       <button id="slowmo-btn" class="ctrl-btn slowmo-btn" title="Slow motion" aria-label="Toggle slow motion">
         <span class="ico"><svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M7.5 5 V19 M7.5 12 L12 8.6 V15.4 Z M13.5 12 L18 8.6 V15.4 Z"/></svg></span>
       </button>
-      <button id="throw-btn" class="ctrl-btn primary">THROW</button>
+      <button id="throw-btn" class="ctrl-btn primary">Throw</button>
       <button id="cancel-btn" class="ctrl-btn cancel-btn" type="button" title="Cancel aiming" aria-label="Cancel aiming">
         <svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
-        <span>CANCEL</span>
+        <span>Cancel</span>
       </button>
     </div>
   </div>
@@ -68,42 +68,49 @@
 
   <div id="readout" class="readout"></div>
   <div id="flash" class="flash"></div>
-  <div id="intro-hint" class="intro-hint" aria-hidden="true">DRAG TO AIM · RELEASE TO THROW</div>
+  <div id="intro-hint" class="intro-hint" aria-hidden="true">Drag To Aim · Release To Throw</div>
 
   <!-- compact aiming HUD (secondary; trajectory line stays primary) -->
   <div id="guidance-hud" class="hud-chip" aria-live="polite">
     <span class="gh-state tonal-neutral"></span><span class="gh-dist"></span>
   </div>
 
-  <!-- compact campaign-level chip (static; opened by tapping) -->
-  <button id="level-chip" class="level-chip" type="button" aria-haspopup="dialog" aria-label="Campaign level">
-    <span class="lv-kicker"><span class="lv-label">LEVEL</span><span class="lv-num">1</span><span class="lv-counter">1 / 4</span></span>
-    <span class="lv-title">FIRST CONTACT</span>
-    <span class="lv-object">ASTEROID</span>
-  </button>
+  <!-- right-side chip stack: level, mission, daily — flex column prevents overlap -->
+  <div id="chip-stack" class="chip-stack">
+    <button id="level-chip" class="level-chip" type="button" aria-haspopup="dialog" aria-label="Campaign level">
+      <span class="lv-kicker"><span class="lv-label">Level</span><span class="lv-num">1</span><span class="lv-counter">1 / 4</span></span>
+      <span class="lv-title">First Contact</span>
+      <span class="lv-object">Asteroid</span>
+    </button>
 
-  <!-- compact current-mission chip (static; opened by tapping) -->
-  <button id="mission-chip" class="mission-chip" type="button" aria-haspopup="dialog" aria-label="Current mission">
-    <span class="ms-kicker"><span>MISSION</span><span class="ms-counter"></span></span>
-    <span class="ms-title"></span>
-    <span class="ms-object"></span>
-  </button>
+    <button id="mission-chip" class="mission-chip" type="button" aria-haspopup="dialog" aria-label="Current mission">
+      <span class="ms-kicker"><span>Mission</span><span class="ms-counter"></span></span>
+      <span class="ms-title"></span>
+      <span class="ms-object"></span>
+    </button>
+
+    <button id="daily-chip" class="daily-chip" type="button" aria-label="Daily challenge">
+      <span class="dc-kicker">Daily</span>
+      <span class="dc-title"></span>
+      <span class="dc-streak"></span>
+    </button>
+  </div>
 
   <!-- level selector (lightweight modal) -->
   <div id="level-modal" class="level-modal" role="dialog" aria-modal="true" aria-label="Campaign levels">
     <div class="level-modal-box">
-      <h2 class="lv-heading">CAMPAIGN</h2>
+      <h2 class="lv-heading">Campaign</h2>
       <div class="lv-list"></div>
-      <button class="ctrl-btn primary lv-close" type="button">DONE</button>
+      <button class="ctrl-btn primary lv-close" type="button">Done</button>
     </div>
   </div>
 
   <!-- mission selector (lightweight modal) -->
   <div id="mission-modal" class="mission-modal" role="dialog" aria-modal="true" aria-label="Choose mission">
     <div class="mission-modal-box">
-      <h2 class="ms-heading">MISSION</h2>
+      <h2 class="ms-heading">Mission</h2>
       <div class="ms-list"></div>
-      <button class="ctrl-btn primary ms-close" type="button">DONE</button>
+      <button class="ctrl-btn primary ms-close" type="button">Done</button>
     </div>
   </div>
 
@@ -114,41 +121,42 @@
   <!-- help modal -->
   <div id="help-modal" class="modal">
     <div class="modal-box">
-      <h2 class="brand-display">BLACK<span>HOLE</span></h2>
-      <p class="brand-tag">NEWTONIAN SPAGHETTIFICATION SANDBOX</p>
+      <h2 class="brand-display">Black<span>Hole</span></h2>
+      <p class="brand-tag">Newtonian Spaghettification Sandbox</p>
       <p>Real spaghettification. Throw objects into a black hole and watch tidal forces rip them apart — physics-accurate gravity, spring-mass materials, and a real event horizon.</p>
-      <h3>HOW TO PLAY</h3>
+      <h3>How To Play</h3>
       <ul>
         <li><b>1.</b> Pick an object (asteroid, astronaut, ship, planet)</li>
-        <li><b>2.</b> Tap <b>THROW</b>, then <b>drag</b> on screen to aim (arrow shows direction &amp; power)</li>
+        <li><b>2.</b> Tap <b>Throw</b>, then <b>drag</b> on screen to aim (arrow shows direction &amp; power)</li>
         <li><b>3.</b> Release to fling it toward the hole</li>
-        <li><b>4.</b> Tap <b>SLOW-MO</b> to watch the stretch and tears in slow motion</li>
+        <li><b>4.</b> Tap <b>Slow-Mo</b> to watch the stretch and tears in slow motion</li>
         <li><b>5.</b> Drag empty space to orbit the camera, pinch to zoom</li>
         <li><b>6.</b> Capture a frame with the camera button</li>
       </ul>
-      <p class="phys"><b>THE PHYSICS:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
-      <button id="help-close" class="ctrl-btn primary">LET'S GO</button>
+      <p class="phys"><b>The Physics:</b> every object is a network of spring-connected masses under real Newtonian gravity. The inner parts fall faster than the outer ones, stretching the object (spaghettification). When tidal stress beats a material's strength, it tears. At the event horizon r_s = 2GM/c², matter is consumed.</p>
+      <button id="help-close" class="ctrl-btn primary">Let's Go</button>
     </div>
   </div>
 
   <!-- Phase 20: settings modal (rows built by js/game/settingsui.js) -->
   <div id="settings-modal" class="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
     <div class="settings-modal-box">
-      <h2 class="st-heading">SETTINGS</h2>
+      <h2 class="st-heading">Settings</h2>
       <div class="st-list" id="setting-rows"></div>
-      <button id="settings-close" class="ctrl-btn primary st-close" type="button">DONE</button>
+      <button id="settings-close" class="ctrl-btn primary st-close" type="button">Done</button>
     </div>
   </div>
 
   <!-- Phase 21: menu (information + settings access; rows built by js/game/ui.js) -->
   <div id="menu-modal" class="menu-modal" role="dialog" aria-modal="true" aria-label="Menu">
     <div class="menu-modal-box">
-      <h2 class="mn-heading">MENU</h2>
+      <h2 class="mn-heading">Menu</h2>
       <div class="mn-list">
         <button id="menu-help" class="menu-row" type="button"></button>
+        <button id="menu-stats" class="menu-row" type="button"></button>
         <button id="settings-open" class="menu-row" type="button"></button>
       </div>
-      <button id="menu-close" class="ctrl-btn primary mn-close" type="button">DONE</button>
+      <button id="menu-close" class="ctrl-btn primary mn-close" type="button">Done</button>
     </div>
   </div>
 

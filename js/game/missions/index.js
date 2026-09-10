@@ -6,3 +6,4 @@
 export { MISSION_TYPES, MISSION_STATES, isValidMission } from './mission.js';
 export { MISSION_CATALOG, getMission, getDefaultMissionId } from './catalog.js';
 export { evaluateMission } from './evaluate.js';
+export { calculateStars, formatStars, starsAriaLabel } from './stars.js';

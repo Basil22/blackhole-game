@@ -56,6 +56,14 @@ export function startLoop(game) {
     // update held preview (frozen in place while aiming)
     if (game.held) game.held.visualizer.update(game.held.world);
 
+    // Phase G: record trail positions for each flying object
+    for (const o of game.objects) {
+      if (o._trailId != null && o.world.bodies.length > 0 && o.world.bodies[0].alive) {
+        game.trails.record(o._trailId, o.world.bodies[0].pos);
+      }
+    }
+    game.trails.update();
+
     // update flying objects, drop finished ones
     for (let i = game.objects.length - 1; i >= 0; i--) {
       const o = game.objects[i];
@@ -71,8 +79,12 @@ export function startLoop(game) {
         if (reason === TERMINATION.DESPAWN && game.lastTelemetry.trajectoryState === 'ESCAPING') {
           game.audio?.escape();
         }
+        if (game.lastTelemetry.trajectoryState === 'ORBITAL') {
+          game.audio?.play?.('orbit-insert');
+        }
         if (game.onThrowEnded) game.onThrowEnded(game.lastTelemetry, game.lastScore);
         o.visualizer.dispose();
+        if (o._trailId != null) game.trails.remove(o._trailId);
         game.objects.splice(i, 1);
       }
     }
@@ -112,8 +124,24 @@ function handleEvents(game, o, events) {
       game.scene.bh?.flash();
       // Deep gravitational drop as matter is consumed.
       game.audio?.capture();
+      if (game._screenEffects && !game._reduceMotion) {
+        screenShake(game.container, 'screen-shake-big');
+      }
     }
   }
+}
+
+// Phase D: apply screen shake CSS animation; auto-removes after completion.
+function screenShake(el, className) {
+  if (!el) return;
+  el.classList.remove('screen-shake', 'screen-shake-big');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add(className || 'screen-shake');
+  const onEnd = () => {
+    el.classList.remove(className || 'screen-shake');
+    el.removeEventListener('animationend', onEnd);
+  };
+  el.addEventListener('animationend', onEnd);
 }
 
 // 0 → nothing near the response zone, 1 → matter on the horizon rim. Drives the

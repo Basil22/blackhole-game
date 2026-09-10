@@ -70,12 +70,12 @@ export class MissionUI {
       <div class="ms-detail-title"></div>
       <div class="ms-detail-desc"></div>
       <div class="ms-detail-meta">
-        <span class="ms-detail-kicker">DIFFICULTY</span>
+        <span class="ms-detail-kicker">Difficulty</span>
         <span class="ms-detail-dots" role="img"></span>
         <span class="ms-detail-difflabel"></span>
       </div>
       <div class="ms-detail-rec">
-        <span class="ms-detail-kicker">RECOMMENDED</span>
+        <span class="ms-detail-kicker">Recommended</span>
         <span class="ms-detail-recname"></span>
         <span class="ms-detail-recreason"></span>
       </div>`;
@@ -172,7 +172,7 @@ export class MissionUI {
       const marker = opt.querySelector('.ms-marker');
       const state = opt.querySelector('.ms-state');
       if (marker) marker.innerHTML = current ? '●' : (completed ? icon('check', 12) : '');
-      if (state) state.textContent = !unlocked ? 'LOCKED' : (completed ? 'COMPLETED' : (current ? 'CURRENT' : ''));
+      if (state) state.textContent = !unlocked ? 'Locked' : (completed ? 'Completed' : (current ? 'Current' : ''));
     }
   }
 

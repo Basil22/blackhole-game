@@ -24,7 +24,7 @@ export class UI {
     const picker = document.getElementById('picker');
     picker.innerHTML = `
       <div class="obj-panel-head">
-        <span class="obj-panel-label">OBJECTS</span>
+        <span class="obj-panel-label">Objects</span>
         <button id="obj-panel-close" class="obj-panel-close" type="button"
           aria-label="Close object menu" title="Close">${icon('close', 14)}</button>
       </div>
@@ -103,8 +103,10 @@ export class UI {
       });
       const helpRow = document.getElementById('menu-help');
       const settingsRow = document.getElementById('settings-open');
-      if (helpRow) helpRow.innerHTML = `<span class="menu-row-icon">${icon('info', 18)}</span><span class="menu-row-label"><span class="menu-row-title">HOW TO PLAY</span><span class="menu-row-sub">rules, controls, physics</span></span>`;
-      if (settingsRow) settingsRow.innerHTML = `<span class="menu-row-icon">${icon('settings', 18)}</span><span class="menu-row-label"><span class="menu-row-title">SETTINGS</span><span class="menu-row-sub">audio, haptics, intro</span></span>`;
+      if (helpRow) helpRow.innerHTML = `<span class="menu-row-icon">${icon('info', 18)}</span><span class="menu-row-label"><span class="menu-row-title">How To Play</span><span class="menu-row-sub">Rules, controls, physics</span></span>`;
+      const statsRow = document.getElementById('menu-stats');
+      if (statsRow) statsRow.innerHTML = `<span class="menu-row-icon">${icon('info', 18)}</span><span class="menu-row-label"><span class="menu-row-title">Statistics</span><span class="menu-row-sub">Scores, stars, streaks</span></span>`;
+      if (settingsRow) settingsRow.innerHTML = `<span class="menu-row-icon">${icon('settings', 18)}</span><span class="menu-row-label"><span class="menu-row-title">Settings</span><span class="menu-row-sub">Audio, haptics, intro</span></span>`;
     }
   }
 
@@ -179,7 +181,7 @@ export class UI {
       // LV.2, ship LV.3, planet LV.4) — the object unlocks when ITS level is
       // reached. unlockHintForObject still spells out which level to CLEAR.
       const n = this.campaign.objectLevelIndex(id);
-      return { text: n ? `LOCKED · LV.${n}` : 'LOCKED', lock: true };
+      return { text: n ? `Locked · Lv.${n}` : 'Locked', lock: true };
     }
     return { text: '', lock: false };
   }
@@ -201,9 +203,9 @@ export class UI {
       state.classList.toggle('is-lock', !unlocked);
       if (!unlocked) {
         const n = this.campaign.objectLevelIndex(id);
-        state.textContent = n ? `LOCKED · LV.${n}` : 'LOCKED';
+        state.textContent = n ? `Locked · Lv.${n}` : 'Locked';
       } else {
-        state.textContent = id === this.game.currentId ? 'CURRENT' : 'UNLOCKED';
+        state.textContent = id === this.game.currentId ? 'Current' : 'Unlocked';
       }
     }
     this._renderSlot(this.game.currentId);
@@ -282,7 +284,7 @@ export class UI {
       a.href = url; a.download = name; a.click();
       URL.revokeObjectURL(url);
       this.setHudVisible(true);
-      this._flash('FRAME CAPTURED');
+      this._flash('Frame Captured');
     }, 'image/png');
   }
 
@@ -307,15 +309,15 @@ export class UI {
     if (st.state === 'aim') {
       this.closeObjectPanel();   // the panel can never cover the aim controls
       this.throwBtn.classList.add('aiming');
-      this.throwBtn.textContent = 'DRAG TO AIM';
+      this.throwBtn.textContent = 'Drag To Aim';
       if (bc) bc.classList.add('aiming');
     } else if (st.state !== undefined) {
       // idle or flying: always allow starting another throw
       this.throwBtn.classList.remove('aiming');
       this.throwBtn.disabled = false;
-      this.throwBtn.textContent = 'THROW';
+      this.throwBtn.textContent = 'Throw';
       if (bc) bc.classList.remove('aiming');
     }
-    if (st.consumed) this._flash('CONSUMED BY THE SINGULARITY');
+    if (st.consumed) this._flash('Consumed By The Singularity');
   }
 }

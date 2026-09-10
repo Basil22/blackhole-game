@@ -16,6 +16,7 @@ import { calculateThrowScore } from './scoring/index.js';
 import { calculateGuidance, launchChanged, TrajectoryPath } from './guidance/index.js';
 import { aimFractions } from './aiming/index.js';
 import { GuideHud } from './guidehud.js';
+import { TrailSystem } from '../render/objects/trails.js';
 
 const SPAWN = new THREE.Vector3(0, 19.2, 384);
 
@@ -66,6 +67,12 @@ export class Game {
 
     this.aimArrow = new AimArrow(this.scene.scene);
     this.trajPath = new TrajectoryPath(this.scene.scene, { horizonRadius: this.config.horizonRadius });
+    // Screen shake on consumption events
+    this._screenEffects = true;
+    this._reduceMotion = typeof matchMedia === 'function'
+      ? matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+    // Phase G: motion trails
+    this.trails = new TrailSystem(this.scene.scene);
     // Pure prediction result while aiming (plain data, see guidance/guidance.js);
     // null outside aiming. Exposed at window.__game.guidance. The prediction
     // NEVER affects the real simulation — it is purely informational.
@@ -199,6 +206,12 @@ export class Game {
       this.spawnPos, vel,
       this.currentId ? colorFor(this.currentId) : 0xffa040,
     );
+    // Phase G: start a trail for the new flying object
+    const lastObj = this.objects[this.objects.length - 1];
+    if (lastObj && this.trails) {
+      lastObj._trailId = this.throwCount;
+      this.trails.add(lastObj._trailId, colorFor(this.currentId));
+    }
     this.onUiState({ state: 'flying' });
   }
 

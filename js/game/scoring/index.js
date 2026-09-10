@@ -11,3 +11,4 @@
 export { SCORING_CONFIG, normalize01, safeDistance } from './config.js';
 export { isConsumed, precision, tidal, destruction, survival, orbital, nearHorizonSurvivalBonus } from './categories.js';
 export { calculateThrowScore } from './score.js';
+export { ScoreHistory } from './history.js';

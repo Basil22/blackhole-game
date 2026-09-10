@@ -3,9 +3,11 @@ import { UI } from './game/ui.js';
 import { ResultPanel } from './game/result.js';
 import { MissionUI } from './game/missionui.js';
 import { CampaignUI } from './game/campaignui.js';
-import { evaluateMission, getMission } from './game/missions/index.js';
+import { evaluateMission, getMission, calculateStars } from './game/missions/index.js';
 import { Progression, missionFlow } from './game/progression/index.js';
+import { ScoreHistory } from './game/scoring/index.js';
 import { Campaign, getLevel } from './game/campaign/index.js';
+import { DailyTracker } from './game/challenges/index.js';
 import { CATALOG } from './objects.js';
 import { applyBranding, BRAND } from './ui/theme.js';
 import { TERMINATION } from './physics.js';
@@ -13,6 +15,9 @@ import { createAudioSystem } from './audio/index.js';
 import { Settings, SETTINGS_STORAGE_KEY } from './game/settings/index.js';
 import { SettingsUI } from './game/settingsui.js';
 import { OpeningScreen } from './game/opening.js';
+import { DailyUI } from './game/dailyui.js';
+import { Tutorial } from './game/tutorial.js';
+import { StatsUI } from './game/statsui.js';
 
 applyBranding({ title: `${BRAND.name} — Spaghettification Sandbox`, wordmark: 'Black Hole' });
 
@@ -97,12 +102,25 @@ const missionUI = new MissionUI({ objectCatalog: OBJECT_CATALOG });
 // from localStorage (normalized defensively), advanced ONLY by first mission
 // completions. Never reads telemetry/score itself — it trusts the eval flag.
 const progression = new Progression();
+const scoreHistory = new ScoreHistory();
+const dailyTracker = new DailyTracker();
 missionUI.select(progression.state.currentMissionId);
 missionUI.refresh(progression);
 
 // Phase-19 campaign layer — sits on top of the mission progression (reads its
 // completed ids, never evaluates anything itself). Drives the level chip +
 // selector, object unlocks in the picker, and the level-complete rewards.
+const dailyUI = new DailyUI({
+  dailyTracker,
+  missionUI,
+  onActivate: (mission) => {
+    // Daily challenge replaces the mission selection while active
+    if (mission && mission.recommendedObjectIds && mission.recommendedObjectIds[0]) {
+      ui.setObjectActive(mission.recommendedObjectIds[0]);
+    }
+  },
+});
+
 campaignUI = new CampaignUI({
   campaign,
   objectCatalog: OBJECT_CATALOG,
@@ -119,6 +137,8 @@ const resultPanel = new ResultPanel(document.getElementById('result'), {
   },
 });
 game.onThrowEnded = (telemetry, score) => {
+  tutorial.advance('launched');
+  tutorial.advance('throw-ended');
   const def = CATALOG.find((o) => o.id === game.currentId);
   const mission = missionUI.getSelected();
   const missionResult = mission
@@ -189,7 +209,7 @@ game.onThrowEnded = (telemetry, score) => {
   // Phase-10: surface the unlocked mission's declarative hint as a NEXT
   // CHALLENGE line whenever a real unlock actually happened.
   let progressionView = plan.progression;
-  if (progressionView && progressionView.kicker === 'NEXT MISSION' && completeOutcome && completeOutcome.unlockedMissionId) {
+  if (progressionView && progressionView.kicker === 'Next Mission' && completeOutcome && completeOutcome.unlockedMissionId) {
     const next = getMission(completeOutcome.unlockedMissionId);
     if (next && next.hint) {
       progressionView = { ...progressionView, hint: next.hint };
@@ -207,34 +227,77 @@ game.onThrowEnded = (telemetry, score) => {
       const unlockedDef = unlockedId ? OBJECT_CATALOG.find((o) => o.id === unlockedId) : null;
       const nextLvl = lvl.unlocks ? getLevel(lvl.unlocks.levelId) : null;
       return {
-        kicker: 'LEVEL COMPLETE',
+        kicker: 'Level Complete',
         title: lvl.title,
-        tagline: unlockedId && unlockedDef ? `NEW OBJECT UNLOCKED — ${unlockedDef.name.toUpperCase()}` : '',
+        tagline: unlockedId && unlockedDef ? `New Object Unlocked — ${unlockedDef.name}` : '',
         tone: campaignOutcome.campaignComplete ? 'final' : 'unlock',
         hint: campaignOutcome.campaignComplete
-          ? 'CAMPAIGN COMPLETE — YOU CONQUERED THE BLACK HOLE'
-          : (nextLvl ? `NEXT — LEVEL ${nextLvl.index} · ${nextLvl.title}` : ''),
+          ? 'Campaign Complete — You Conquered The Black Hole'
+          : (nextLvl ? `Next — Level ${nextLvl.index} · ${nextLvl.title}` : ''),
       };
     });
     progressionView = null;
+  }
+  // Phase E: daily challenge evaluation (parallel to regular missions)
+  if (dailyUI.isActive && telemetry.terminationReason !== TERMINATION.PLAYER_RESET) {
+    const dailyResult = dailyUI.evaluate(telemetry, score);
+    if (dailyResult && dailyResult.completed) {
+      dailyUI.recordComplete(score.total);
+      audio.missionComplete();
+    }
+  }
+
+  // Phase B: star rating + Phase A: score persistence
+  let stars = 0;
+  let historyResult = { isNewBest: false, previousBest: null };
+  if (mission && missionResult && missionResult.completed) {
+    stars = calculateStars(mission, { telemetry, score });
+  }
+  if (mission && telemetry.terminationReason !== TERMINATION.PLAYER_RESET) {
+    historyResult = scoreHistory.record(mission.id, {
+      total: score.total,
+      breakdown: score.breakdown,
+      objectId: game.currentId,
+      stars,
+    });
   }
   resultPanel.show(telemetry, score, def ? def.name : '', {
     title: missionResult ? missionResult.title : '',
     status: plan.status,
     tone: plan.tone,
     nudge: plan.nudge || '',
-  }, progressionView, campaignRewards);
+  }, progressionView, campaignRewards, {
+    stars: (mission && missionResult && missionResult.completed) ? stars : 0,
+    isNewBest: historyResult.isNewBest,
+    previousBest: historyResult.previousBest,
+  });
 };
-game.onBeginAim = () => resultPanel.hide();
+game.onBeginAim = () => {
+  resultPanel.hide();
+  tutorial.advance('aim-start');
+};
 document.getElementById('result-scrim').addEventListener('click', () => resultPanel.hide());
 
 // ---- Phase 20: settings + opening experience -------------------------------
 const settingsUI = new SettingsUI({ settings });
 // Phase 21 — settings lives inside the top-left menu (single access point).
+const statsUI = new StatsUI({
+  scoreHistory,
+  dailyTracker,
+  progression,
+});
+
+document.getElementById('menu-stats').addEventListener('click', () => {
+  ui.hideMenu();
+  statsUI.open();
+});
 document.getElementById('settings-open').addEventListener('click', () => {
   ui.hideMenu();
   settingsUI.open();
 });
+// Phase F: interactive tutorial — first-play step-by-step tips
+const tutorial = new Tutorial();
+
 const opening = new OpeningScreen({
   game,
   settings,
@@ -244,6 +307,8 @@ const opening = new OpeningScreen({
     // idle event nudges any first-launch chrome (the campaign DRAG·RELEASE
     // hint reads it), but gameplay was already interactable below the fade.
     game.onUiState({ state: 'idle' });
+    // Phase F: launch the interactive tutorial on first play
+    tutorial.mount();
   },
 });
 opening.onOpenSettings = () => settingsUI.open();
@@ -273,12 +338,15 @@ window.__game.resetProgression = () => {
 window.__game.resetCampaign = () => {
   progression.reset();
   campaign.reset();
+  scoreHistory.reset();
   missionUI.select(progression.state.currentMissionId);
   missionUI.refresh(progression);
   campaignUI.refresh(progression.state.completedMissionIds);
   ui.refreshObjectPicker(progression.state.completedMissionIds);
   ui.setObjectActive('rock');
 };
+window.__scoreHistory = scoreHistory;
+window.__tutorial = tutorial;
 
 // Android-specific: back button + lifecycle (no-op on desktop, dynamic import)
 import { initAndroid } from './game/android.js';

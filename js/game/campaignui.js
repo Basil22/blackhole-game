@@ -20,7 +20,7 @@ export class CampaignUI {
     this.onSelectLevel = onSelectLevel || (() => {});
     this._objName = (id) => {
       const d = this.objectCatalog.find((o) => o.id === id);
-      return d ? d.name.toUpperCase() : id ? id.toUpperCase() : '';
+      return d ? d.name : id || '';
     };
 
     this.chipEl = document.getElementById('level-chip');
@@ -52,7 +52,7 @@ export class CampaignUI {
       btn.innerHTML = `
         <span class="lv-option-main">
           <span class="lv-marker"></span>
-          <span class="lv-option-title">LEVEL ${lvl.index} · ${lvl.title}</span>
+          <span class="lv-option-title">Level ${lvl.index} · ${lvl.title}</span>
           <span class="lv-state"></span>
         </span>
         <span class="lv-option-object">${this._objName(lvl.objectId)}</span>
@@ -139,11 +139,11 @@ export class CampaignUI {
       if (state) {
         if (!unlocked) {
           const hint = this.campaign.unlockHintForObject(lvl.objectId, missionDone);
-          state.textContent = hint ? `LOCKED · ${hint}` : 'LOCKED';
+          state.textContent = hint ? `Locked · ${hint}` : 'Locked';
         } else if (completedFlag) {
-          state.textContent = 'COMPLETED';
+          state.textContent = 'Completed';
         } else if (currentFlag) {
-          state.textContent = 'CURRENT';
+          state.textContent = 'Current';
         } else {
           state.textContent = '';
         }

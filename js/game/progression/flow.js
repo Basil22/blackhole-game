@@ -20,7 +20,7 @@ const NO_MISSION = { missionId: null, completed: false, replay: false, status: '
 
 // Phase 24: computed, not hardcoded — the ladder is now 6 missions (Grazing the
 // Void moved to optional), so the final display derives from MISSION_ORDER.
-const CAMPAIGN_TITLE = `${MISSION_ORDER.length} / ${MISSION_ORDER.length} MISSIONS`;
+const CAMPAIGN_TITLE = `${MISSION_ORDER.length} / ${MISSION_ORDER.length} Missions`;
 
 // Build the renderable plan for one finalized throw. Defensive by construction:
 // any malformed input (mission or result) collapses to a clean "failed / no
@@ -34,7 +34,7 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
       missionId: mission.id,
       completed: false,
       replay: false,
-      status: 'MISSION FAILED',
+      status: 'Mission Failed',
       tone: 'fail',
       progression: null,
       nudge: mission.hint || '',
@@ -50,10 +50,10 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
       missionId: mission.id,
       completed: true,
       replay: false,
-      status: 'CAMPAIGN COMPLETE',
+      status: 'Campaign Complete',
       tone: 'final',
       progression: {
-        kicker: 'CAMPAIGN',
+        kicker: 'Campaign',
         title: CAMPAIGN_TITLE,
         tagline: 'You conquered the black hole.',
         tone: 'final',
@@ -69,10 +69,10 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
       missionId: mission.id,
       completed: true,
       replay: false,
-      status: 'MISSION COMPLETE',
+      status: 'Mission Complete',
       tone: 'done',
       progression: {
-        kicker: 'NEXT MISSION',
+        kicker: 'Next Mission',
         title: next ? next.title : '',
         tagline: '',
         tone: 'unlock',
@@ -86,7 +86,7 @@ export function missionFlow({ mission, missionResult, alreadyCompleted, complete
     missionId: mission.id,
     completed: true,
     replay,
-    status: replay ? 'MISSION ALREADY COMPLETED' : 'MISSION COMPLETE',
+    status: replay ? 'Mission Already Completed' : 'Mission Complete',
     tone: replay ? 'already' : 'done',
     progression: null,
   };

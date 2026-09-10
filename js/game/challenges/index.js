@@ -19,3 +19,4 @@ export {
   validateChallengeData,
 } from './catalog.js';
 export { getRecommendedObject } from './evaluate.js';
+export { generateDailyChallenge, DailyTracker } from './daily.js';

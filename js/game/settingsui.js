@@ -11,10 +11,10 @@
 import { icon } from '../ui/icons.js';
 
 const SETTING_ROWS = [
-  { key: 'audio', label: 'AUDIO', desc: 'Sound effects' },
-  { key: 'haptics', label: 'HAPTICS', desc: 'Vibration feedback' },
-  { key: 'skipIntro', label: 'SKIP INTRO ON OPENING', desc: 'Go straight to gameplay when you press PLAY' },
-  { key: 'reduceMotion', label: 'REDUCED MOTION', desc: 'Removes the camera dive, exposure and bounce. Follows your system when OFF' },
+  { key: 'audio', label: 'Audio', desc: 'Sound effects' },
+  { key: 'haptics', label: 'Haptics', desc: 'Vibration feedback' },
+  { key: 'skipIntro', label: 'Skip Intro On Opening', desc: 'Go straight to gameplay when you press Play' },
+  { key: 'reduceMotion', label: 'Reduced Motion', desc: 'Removes the camera dive, exposure and bounce. Follows your system when Off' },
 ];
 
 export class SettingsUI {
@@ -41,7 +41,7 @@ export class SettingsUI {
         <div class="set-row-top">
           <span class="set-label">${cfg.label}</span>
           <button type="button" class="set-toggle" role="switch" aria-checked="false"
-            aria-label="${cfg.label}">OFF</button>
+            aria-label="${cfg.label}">Off</button>
         </div>
         <span class="set-desc"></span>`;
       const desc = row.querySelector('.set-desc');
@@ -76,13 +76,13 @@ export class SettingsUI {
     if (!this.settings) return;
     for (const { cfg, row, toggle, desc } of this._rows) {
       const value = this.settings.get(cfg.key) === true;
-      toggle.textContent = value ? 'ON' : 'OFF';
+      toggle.textContent = value ? 'On' : 'Off';
       toggle.setAttribute('aria-checked', value ? 'true' : 'false');
       toggle.classList.toggle('on', value);
       if (desc) {
         if (cfg.key === 'reduceMotion') {
           desc.textContent = this.settings.reduceMotionEffective
-            ? cfg.desc + ' — ON'
+            ? cfg.desc + ' — On'
             : cfg.desc;
         } else {
           desc.textContent = cfg.desc;

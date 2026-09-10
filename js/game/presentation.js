@@ -39,27 +39,27 @@ export function presentOutcome(telemetry, score) {
   const horizon = Number.isFinite(score?.horizonRadius) ? score.horizonRadius : 40;
 
   if (reason === 'PLAYER_RESET') {
-    return { headline: 'THROW ABORTED', tone: OUTCOME_TONES.neutral };
+    return { headline: 'Throw Aborted', tone: OUTCOME_TONES.neutral };
   }
   if (consumed) {
-    if (stretch >= 2.5) return { headline: 'SPAGHETTIFIED', tone: OUTCOME_TONES.danger };
-    if (tears > 0) return { headline: 'RIPPED APART', tone: OUTCOME_TONES.danger };
-    return { headline: 'OBJECT CONSUMED', tone: OUTCOME_TONES.danger };
+    if (stretch >= 2.5) return { headline: 'Spaghettified', tone: OUTCOME_TONES.danger };
+    if (tears > 0) return { headline: 'Ripped Apart', tone: OUTCOME_TONES.danger };
+    return { headline: 'Object Consumed', tone: OUTCOME_TONES.danger };
   }
   // survived the encounter
   if (t.trajectoryState === 'ORBITAL') {
-    return { headline: 'ORBITAL INSERTION', tone: OUTCOME_TONES.special };
+    return { headline: 'Orbital Insertion', tone: OUTCOME_TONES.special };
   }
   if (closest > 0 && closest <= horizon * 1.5) {
-    return { headline: 'CRITICAL NEAR MISS', tone: OUTCOME_TONES.danger };
+    return { headline: 'Critical Near Miss', tone: OUTCOME_TONES.danger };
   }
   if (t.trajectoryState === 'ESCAPING') {
-    return { headline: 'CLEAN ESCAPE', tone: OUTCOME_TONES.success };
+    return { headline: 'Clean Escape', tone: OUTCOME_TONES.success };
   }
   if (t.trajectoryState === 'FLYBY') {
-    return { headline: 'SURVIVED THE PASS', tone: OUTCOME_TONES.success };
+    return { headline: 'Survived The Pass', tone: OUTCOME_TONES.success };
   }
-  return { headline: 'SURVIVED THE PASS', tone: OUTCOME_TONES.success };
+  return { headline: 'Survived The Pass', tone: OUTCOME_TONES.success };
 }
 
 // The presentation-only snapshot the result view draws from. Every number is
@@ -71,7 +71,12 @@ export function presentResult(telemetry, score) {
   if (Array.isArray(score?.breakdown)) {
     breakdown = score.breakdown
       .filter((r) => r && typeof r.score === 'number')
-      .map((r) => ({ key: r.key, label: r.label, score: r.score }));
+      .map((r) => ({
+        key: r.key, label: r.label, score: r.score,
+        normalized: Number.isFinite(r.normalized) ? r.normalized : 0,
+        max: Number.isFinite(r.max) ? r.max : 0,
+        annotation: annotateCategory(r),
+      }));
   }
   return {
     ...presentOutcome(telemetry, score),
@@ -81,6 +86,43 @@ export function presentResult(telemetry, score) {
   };
 }
 
+// Contextual one-liner explaining what earned this category's score.
+function annotateCategory(row) {
+  if (!row || !row.key) return '';
+  switch (row.key) {
+    case 'precision': {
+      const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
+      if (row.consumed) return 'Consumed';
+      return d > 0 ? `${d.toFixed(1)} from horizon` : '';
+    }
+    case 'tidal': {
+      const s = Number.isFinite(row.maximumStretch) ? row.maximumStretch : 1;
+      return s > 1 ? `${s.toFixed(1)}x stretch` : 'No stretch';
+    }
+    case 'destruction': {
+      const tears = Number.isFinite(row.tearCount) ? row.tearCount : 0;
+      if (tears > 0) return `${tears} tear${tears !== 1 ? 's' : ''}`;
+      const consumed = Number.isFinite(row.consumedPointCount) ? row.consumedPointCount : 0;
+      return consumed > 0 ? 'Swallowed whole' : 'Intact';
+    }
+    case 'survival': {
+      if (row.consumed) return 'Consumed';
+      const t = Number.isFinite(row.timeNearHorizon) ? row.timeNearHorizon : 0;
+      return t > 0 ? `${t.toFixed(1)}s near horizon` : 'Far pass';
+    }
+    case 'orbital': {
+      const s = row.trajectoryState;
+      return s === 'ORBITAL' ? 'Stable orbit' : (s ? formatState(s) : 'No orbit');
+    }
+    case 'nearHorizonSurvival': {
+      if (!row.eligible) return row.consumed ? 'Consumed' : 'Too far';
+      const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
+      return d > 0 ? `Survived at ${d.toFixed(1)}` : '';
+    }
+    default: return '';
+  }
+}
+
 // Human-readable distance for the compact HUD (no excessive precision).
 export function formatDistance(d) {
   const n = Number.isFinite(d) && d > 0 ? d : 0;
@@ -88,9 +130,10 @@ export function formatDistance(d) {
   return `${Math.round(n)} m`;
 }
 
-// Compact state label for the aiming HUD (spaces, no underscores).
+// Compact state label for the aiming HUD — Pascal Case, spaces, no underscores.
 export function formatState(state) {
-  return typeof state === 'string' ? state.replace(/_/g, ' ') : state ?? '';
+  if (typeof state !== 'string') return state ?? '';
+  return state.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 // Score formatted with thousands separators.

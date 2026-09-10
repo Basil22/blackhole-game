@@ -11,10 +11,10 @@ export const OBJECT_IDS = Object.freeze(['rock', 'human', 'ship', 'planet']);
 
 // Difficulty tier → human label (allowed values 1..4).
 export const OBJECT_DIFFICULTY_LABELS = Object.freeze({
-  1: 'EASY',
-  2: 'BALANCED',
-  3: 'HARD',
-  4: 'EXTREME',
+  1: 'Easy',
+  2: 'Balanced',
+  3: 'Hard',
+  4: 'Extreme',
 });
 
 function makeProfile(props) {

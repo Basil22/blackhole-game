@@ -14,7 +14,7 @@ export const CAMPAIGN_LEVELS = Object.freeze([
   {
     id: 'level-1',
     index: 1,
-    title: 'FIRST CONTACT',
+    title: 'First Contact',
     description: 'Learn the basics with the asteroid.',
     objectId: 'rock',
     requiredMissionIds: Object.freeze([
@@ -30,7 +30,7 @@ export const CAMPAIGN_LEVELS = Object.freeze([
   {
     id: 'level-2',
     index: 2,
-    title: 'THE HUMAN LIMIT',
+    title: 'The Human Limit',
     description: 'Push the astronaut through harder challenges.',
     objectId: 'human',
     requiredMissionIds: Object.freeze([
@@ -46,7 +46,7 @@ export const CAMPAIGN_LEVELS = Object.freeze([
   {
     id: 'level-3',
     index: 3,
-    title: 'GRAVITY WELL',
+    title: 'Gravity Well',
     description: 'Master the starship across the full mission set.',
     objectId: 'ship',
     requiredMissionIds: Object.freeze([
@@ -62,7 +62,7 @@ export const CAMPAIGN_LEVELS = Object.freeze([
   {
     id: 'level-4',
     index: 4,
-    title: 'EVENT HORIZON',
+    title: 'Event Horizon',
     description: 'Conquer every challenge with the planet.',
     objectId: 'planet',
     requiredMissionIds: Object.freeze([

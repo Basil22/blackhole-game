@@ -19,11 +19,11 @@ export function calculateThrowScore(telemetry, config = SCORING_CONFIG) {
   const w = config.weights;
 
   const cats = {
-    precision: makeCat('precision', 'PRECISION', w.precision * maxTotal),
-    tidal: makeCat('tidal', 'TIDAL', w.tidal * maxTotal),
-    destruction: makeCat('destruction', 'DESTRUCTION', w.destruction * maxTotal),
-    survival: makeCat('survival', 'SURVIVAL', w.survival * maxTotal),
-    orbital: makeCat('orbital', 'ORBITAL', w.orbital * maxTotal),
+    precision: makeCat('precision', 'Precision', w.precision * maxTotal),
+    tidal: makeCat('tidal', 'Tidal', w.tidal * maxTotal),
+    destruction: makeCat('destruction', 'Destruction', w.destruction * maxTotal),
+    survival: makeCat('survival', 'Survival', w.survival * maxTotal),
+    orbital: makeCat('orbital', 'Orbital', w.orbital * maxTotal),
   };
 
   precision(cats.precision, telemetry, config);
