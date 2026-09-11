@@ -18,7 +18,7 @@ const failRes = (mission = NEAR) => ({ missionId: mission.id, completed: false, 
 
 test('failed mission → MISSION FAILED, never unlocks or shows progression', () => {
   const plan = missionFlow({ mission: NEAR, missionResult: failRes(), alreadyCompleted: false, completeOutcome: null, campaignComplete: false });
-  assert.strictEqual(plan.status, 'MISSION FAILED');
+  assert.strictEqual(plan.status, 'Mission Failed');
   assert.strictEqual(plan.tone, 'fail');
   assert.strictEqual(plan.completed, false);
   assert.strictEqual(plan.progression, null);
@@ -27,9 +27,9 @@ test('failed mission → MISSION FAILED, never unlocks or shows progression', ()
 test('mission completion displays the correct unlock (from unlockedMissionId, not indexes)', () => {
   // first mission done → progression unlocks near-horizon-01 (Touch the Edge)
   const plan = missionFlow({ mission: NEAR, missionResult: ok(), alreadyCompleted: false, completeOutcome: outcome(true, 'near-horizon-01'), campaignComplete: false });
-  assert.strictEqual(plan.status, 'MISSION COMPLETE');
+  assert.strictEqual(plan.status, 'Mission Complete');
   assert.strictEqual(plan.tone, 'done');
-  assert.strictEqual(plan.progression.kicker, 'NEXT MISSION');
+  assert.strictEqual(plan.progression.kicker, 'Next Mission');
   assert.strictEqual(plan.progression.title, 'Touch the Edge');
   assert.strictEqual(plan.progression.tone, 'unlock');
 });
@@ -41,7 +41,7 @@ test('unlock title resolves through the catalog, never a raw id', () => {
 
 test('replay of a completed mission → MISSION ALREADY COMPLETED, no progression line', () => {
   const plan = missionFlow({ mission: NEAR, missionResult: ok(), alreadyCompleted: true, completeOutcome: outcome(false, null), campaignComplete: false });
-  assert.strictEqual(plan.status, 'MISSION ALREADY COMPLETED');
+  assert.strictEqual(plan.status, 'Mission Already Completed');
   assert.strictEqual(plan.tone, 'already');
   assert.strictEqual(plan.replay, true);
   assert.strictEqual(plan.progression, null);
@@ -65,11 +65,11 @@ test('completed-with-unlock shows exactly one unlock line (no stale titles)', ()
 
 test('campaign completion displays the final plan', () => {
   const plan = missionFlow({ mission: FINAL, missionResult: ok(FINAL), alreadyCompleted: false, completeOutcome: outcome(true, null), campaignComplete: true });
-  assert.strictEqual(plan.status, 'CAMPAIGN COMPLETE');
+  assert.strictEqual(plan.status, 'Campaign Complete');
   assert.strictEqual(plan.tone, 'final');
-  assert.strictEqual(plan.progression.kicker, 'CAMPAIGN');
+  assert.strictEqual(plan.progression.kicker, 'Campaign');
   // Phase 24: the forced ladder is 6 missions (Grazing moved to optional).
-  assert.strictEqual(plan.progression.title, `${MISSION_ORDER.length} / ${MISSION_ORDER.length} MISSIONS`);
+  assert.strictEqual(plan.progression.title, `${MISSION_ORDER.length} / ${MISSION_ORDER.length} Missions`);
   assert.strictEqual(plan.progression.tagline, 'You conquered the black hole.');
 });
 
@@ -88,7 +88,7 @@ test('campaign completion does not prevent further throws (replay after campaign
   assert.strictEqual(again.state, s);
   assert.strictEqual(again.unlockedMissionId, null);
   const plan = missionFlow({ mission: NEAR, missionResult: ok(), alreadyCompleted: true, completeOutcome: outcome(false, null), campaignComplete: true });
-  assert.strictEqual(plan.status, 'MISSION ALREADY COMPLETED');
+  assert.strictEqual(plan.status, 'Mission Already Completed');
   assert.strictEqual(plan.progression, null, 'no stale unlock after campaign');
 });
 
@@ -102,7 +102,7 @@ test('unlock message vanishes on the next throw of a different mission (no stale
   const unlockPlan = missionFlow({ mission: NEAR, missionResult: ok(), alreadyCompleted: false, completeOutcome: outcome(true, 'escape-01'), campaignComplete: false });
   assert.ok(unlockPlan.progression);
   const nextThrow = missionFlow({ mission: ESCAPE, missionResult: failRes(ESCAPE), alreadyCompleted: false, completeOutcome: null, campaignComplete: false });
-  assert.strictEqual(nextThrow.status, 'MISSION FAILED');
+  assert.strictEqual(nextThrow.status, 'Mission Failed');
   assert.strictEqual(nextThrow.progression, null);
 });
 
@@ -116,7 +116,7 @@ test('NaN/malformed inputs cannot break the planner (defensive collapse)', () =>
   // malformed result + valid mission → clean failure
   for (const res of [null, undefined, {}, { completed: 'yes' }, { completed: NaN }]) {
     const plan = missionFlow({ mission: NEAR, missionResult: res, alreadyCompleted: false, completeOutcome: null, campaignComplete: false });
-    assert.strictEqual(plan.status, 'MISSION FAILED');
+    assert.strictEqual(plan.status, 'Mission Failed');
     assert.strictEqual(plan.progression, null);
   }
 });
@@ -135,7 +135,7 @@ test('every MISSION_ORDER mission produces a coherent first-completion plan', ()
     const m = getMission(id);
     const plan = missionFlow({ mission: m, missionResult: ok(m), alreadyCompleted: false, completeOutcome: outcome(true, null), campaignComplete: false });
     assert.strictEqual(plan.completed, true, `${id} completed`);
-    assert.strictEqual(plan.status, 'MISSION COMPLETE');
+    assert.strictEqual(plan.status, 'Mission Complete');
     assert.strictEqual(plan.progression, null, 'unlock only when unlockedMissionId present');
   }
 });
@@ -143,7 +143,7 @@ test('every MISSION_ORDER mission produces a coherent first-completion plan', ()
 test('replay flag drives ALREADY COMPLETED regardless of campaign state', () => {
   for (const campaignComplete of [false, true]) {
     const plan = missionFlow({ mission: NEAR, missionResult: ok(), alreadyCompleted: true, completeOutcome: outcome(false, null), campaignComplete });
-    assert.strictEqual(plan.status, 'MISSION ALREADY COMPLETED', `campaignComplete=${campaignComplete}`);
+    assert.strictEqual(plan.status, 'Mission Already Completed', `campaignComplete=${campaignComplete}`);
   }
 });
 

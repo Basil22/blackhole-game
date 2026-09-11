@@ -90,14 +90,20 @@ export function presentResult(telemetry, score) {
 function annotateCategory(row) {
   if (!row || !row.key) return '';
   switch (row.key) {
-    case 'precision': {
-      const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
-      if (row.consumed) return 'Consumed';
-      return d > 0 ? `${d.toFixed(1)} from horizon` : '';
-    }
-    case 'tidal': {
+    case 'stretch': {
       const s = Number.isFinite(row.maximumStretch) ? row.maximumStretch : 1;
       return s > 1 ? `${s.toFixed(1)}x stretch` : 'No stretch';
+    }
+    case 'precision': {
+      const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
+      if (row.consumed) return d > 0 ? `${d.toFixed(1)} from horizon (consumed)` : 'Consumed';
+      return d > 0 ? `${d.toFixed(1)} from horizon` : '';
+    }
+    case 'absorption': {
+      const frac = Number.isFinite(row.consumptionFraction) ? row.consumptionFraction : 0;
+      const dur = Number.isFinite(row.absorptionDuration) ? row.absorptionDuration : 0;
+      if (frac <= 0) return 'Not consumed';
+      return dur > 0.1 ? `${(frac * 100).toFixed(0)}% in ${dur.toFixed(1)}s` : `${(frac * 100).toFixed(0)}% consumed`;
     }
     case 'destruction': {
       const tears = Number.isFinite(row.tearCount) ? row.tearCount : 0;
@@ -106,18 +112,13 @@ function annotateCategory(row) {
       return consumed > 0 ? 'Swallowed whole' : 'Intact';
     }
     case 'survival': {
-      if (row.consumed) return 'Consumed';
-      const t = Number.isFinite(row.timeNearHorizon) ? row.timeNearHorizon : 0;
-      return t > 0 ? `${t.toFixed(1)}s near horizon` : 'Far pass';
-    }
-    case 'orbital': {
-      const s = row.trajectoryState;
-      return s === 'ORBITAL' ? 'Stable orbit' : (s ? formatState(s) : 'No orbit');
-    }
-    case 'nearHorizonSurvival': {
-      if (!row.eligible) return row.consumed ? 'Consumed' : 'Too far';
-      const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
-      return d > 0 ? `Survived at ${d.toFixed(1)}` : '';
+      const m = Number.isFinite(row.multiplier) ? row.multiplier : 1;
+      if (!row.survived) return 'Consumed';
+      if (m > 1.1) {
+        const d = Number.isFinite(row.closestApproach) ? row.closestApproach : 0;
+        return d > 0 ? `${m.toFixed(1)}x (survived at ${d.toFixed(1)})` : `${m.toFixed(1)}x multiplier`;
+      }
+      return 'Far pass';
     }
     default: return '';
   }

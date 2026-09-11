@@ -49,7 +49,7 @@ export const MISSION_CATALOG = Object.freeze([
     target: 500,
     difficulty: 2,
     recommendedObjectIds: Object.freeze(['rock', 'human']),
-    hint: 'A close pass that stretches the object earns precision + tidal points.',
+    hint: 'A close pass that stretches the object earns precision + stretch points.',
   },
   {
     id: 'tear-01',
@@ -123,7 +123,7 @@ export const MISSION_CATALOG = Object.freeze([
     target: 2000,
     difficulty: 4,
     recommendedObjectIds: Object.freeze(['ship', 'planet']),
-    hint: 'Stack precision + tidal + destruction — a close tearing pass with survival is the dream throw.',
+    hint: 'Stack precision + stretch + destruction — a close tearing pass with survival multiplier is the dream throw.',
   },
   {
     id: 'score-03',

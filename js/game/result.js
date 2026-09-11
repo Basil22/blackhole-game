@@ -6,14 +6,13 @@
 
 import { presentResult, formatScore } from './presentation.js';
 
-const ROW_KEYS = ['precision', 'tidal', 'destruction', 'survival', 'orbital', 'nearHorizonSurvival'];
+const ROW_KEYS = ['stretch', 'precision', 'absorption', 'destruction', 'survival'];
 const ROW_LABELS = {
+  stretch: 'Stretch',
   precision: 'Precision',
-  tidal: 'Tidal',
+  absorption: 'Absorption',
   destruction: 'Destruction',
   survival: 'Survival',
-  orbital: 'Orbital',
-  nearHorizonSurvival: 'Near-Horizon',
 };
 
 export class ResultPanel {
@@ -149,8 +148,8 @@ export class ResultPanel {
     this.headEl.classList.remove('tonal-success', 'tonal-special', 'tonal-danger', 'tonal-neutral');
     this.headEl.classList.add(`tonal-${pres.tone}`);
 
-    // score: max passes through verbatim from the scorer, never animated
-    this.maxEl.textContent = `/ ${formatScore(pres.maxTotal)}`;
+    // Uncapped scoring: no "/ max" display. Show "pts" instead.
+    this.maxEl.textContent = pres.maxTotal > 0 ? `/ ${formatScore(pres.maxTotal)}` : 'pts';
 
     // star rating (only when a mission was active and completed)
     if (Number.isFinite(stars) && stars > 0) {
@@ -208,11 +207,15 @@ export class ResultPanel {
     }
 
     // Row values are the scorer's own numbers, written immediately.
+    // For fill bars: use a reference score per category since scoring is uncapped.
+    // The bar fills to 100% at the reference value, can overflow for extreme throws.
+    const REF_SCORES = { stretch: 3000, precision: 3000, absorption: 2500, destruction: 1500, survival: 3000 };
     for (const row of this.rowEls) {
       const r = pres.breakdown.find((b) => b.key === row.key);
       row.scoreEl.textContent = formatScore(r ? r.score : 0);
-      // Normalized fill bar (0-100%)
-      const pct = r ? Math.round((r.normalized || 0) * 100) : 0;
+      // Fill bar: proportional to reference score, capped at 100% visually
+      const ref = REF_SCORES[row.key] || 3000;
+      const pct = r ? Math.min(100, Math.round((r.score / ref) * 100)) : 0;
       if (row.fillEl) row.fillEl.style.width = `${pct}%`;
       // Contextual annotation
       if (row.annotEl) row.annotEl.textContent = r ? (r.annotation || '') : '';

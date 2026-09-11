@@ -69,6 +69,9 @@ export function createThrowTelemetry({ world, nearHorizonFactor = 1.25 }) {
     // --- counters (event-driven) ---
     tearCount: 0, tearTimes: [],
     consumedPointCount: 0, consumedMass: 0,
+    // Absorption tracking: time of first and last consumption events,
+    // used to compute how gradually the object was absorbed.
+    firstConsumeTime: 0, lastConsumeTime: 0,
 
     // --- last observed live COM (for final classification) ---
     lastPosition: { x: 0, y: 0, z: 0 }, lastVelocity: { x: 0, y: 0, z: 0 },
@@ -95,6 +98,9 @@ export function createThrowTelemetry({ world, nearHorizonFactor = 1.25 }) {
     tm.consumedPointCount++;
     tm.consumedMass += mass || 0;
     tm.consumed = tm.consumedPointCount;
+    const t = tm.world.time;
+    if (tm.consumedPointCount === 1) tm.firstConsumeTime = t;
+    tm.lastConsumeTime = t;
   };
   tm.finalizeThrow = (reason) => finalizeThrow(tm, world, reason);
   return tm;

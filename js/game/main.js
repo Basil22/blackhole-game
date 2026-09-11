@@ -16,7 +16,6 @@ import { calculateThrowScore } from './scoring/index.js';
 import { calculateGuidance, launchChanged, TrajectoryPath } from './guidance/index.js';
 import { aimFractions } from './aiming/index.js';
 import { GuideHud } from './guidehud.js';
-import { TrailSystem } from '../render/objects/trails.js';
 
 const SPAWN = new THREE.Vector3(0, 19.2, 384);
 
@@ -36,8 +35,10 @@ export class Game {
     this.objects = [];          // active sims (each throw = own world+visualizer)
     this.held = null;           // aim-preview object { world, visualizer, meta }
     this.state = 'idle';        // idle | aim | flying
-    this.slowmo = false;
+    this.slowmo = false;            // manual slow-mo toggle (0.25x)
     this.timeScale = 1;
+    this._autoSlowTarget = 1;       // auto slow-mo target (0.5 when near horizon)
+    this._autoSlowEnabled = true;   // can be disabled in settings
     this.size = 1;              // throwable scale multiplier
     this.throwCount = 0;
 
@@ -71,8 +72,6 @@ export class Game {
     this._screenEffects = true;
     this._reduceMotion = typeof matchMedia === 'function'
       ? matchMedia('(prefers-reduced-motion: reduce)').matches : false;
-    // Phase G: motion trails
-    this.trails = new TrailSystem(this.scene.scene);
     // Pure prediction result while aiming (plain data, see guidance/guidance.js);
     // null outside aiming. Exposed at window.__game.guidance. The prediction
     // NEVER affects the real simulation — it is purely informational.
@@ -137,6 +136,15 @@ export class Game {
   beginAim() {
     if (this.state === 'aim') return;
     if (!this.currentId) return;
+    // Single-throw enforcement: auto-cancel any in-flight object silently
+    // (no score, no result panel) so the player can immediately rethrow.
+    if (this.state === 'flying' && this.objects.length > 0) {
+      for (const o of this.objects) {
+        o.visualizer.dispose();
+      }
+      this.objects.length = 0;
+      this._releaseWakeLock();
+    }
     if (this.onBeginAim) this.onBeginAim();   // dismiss any prior throw result
     this.audio?.aimStart();
     this._acquireWakeLock();
@@ -206,12 +214,6 @@ export class Game {
       this.spawnPos, vel,
       this.currentId ? colorFor(this.currentId) : 0xffa040,
     );
-    // Phase G: start a trail for the new flying object
-    const lastObj = this.objects[this.objects.length - 1];
-    if (lastObj && this.trails) {
-      lastObj._trailId = this.throwCount;
-      this.trails.add(lastObj._trailId, colorFor(this.currentId));
-    }
     this.onUiState({ state: 'flying' });
   }
 
@@ -236,8 +238,25 @@ export class Game {
 
   toggleSlowmo() {
     this.slowmo = !this.slowmo;
-    this.timeScale = this.slowmo ? 0.25 : 1;
+    // Manual slow-mo overrides auto-slow. When manual is off, auto-slow takes over.
+    this.timeScale = this.slowmo ? 0.25 : this._autoSlowTarget;
     this.onUiState({ slowmo: this.slowmo });
+  }
+
+  // Called each frame by the loop to smoothly interpolate auto-slow based on
+  // proximity. Manual slow-mo (0.25x) always takes priority.
+  updateAutoSlow(proximity) {
+    if (!this._autoSlowEnabled || this.slowmo) return;
+    // Start auto-slow when proximity >= 0.4 (about 2.8× horizon radius)
+    // Target 0.5x at full proximity (right on the horizon)
+    if (proximity >= 0.4) {
+      const t = (proximity - 0.4) / 0.6; // 0 at prox=0.4, 1 at prox=1.0
+      this._autoSlowTarget = 1 - t * 0.5; // 1.0 → 0.5
+    } else {
+      this._autoSlowTarget = 1;
+    }
+    // Smooth interpolation toward target (lerp)
+    this.timeScale += (this._autoSlowTarget - this.timeScale) * 0.08;
   }
 
   // Phase 17 — CANCEL: back out of an aim without launching or finalizing
@@ -333,7 +352,6 @@ export class Game {
   dispose() {
     this._disposed = true;
     this.stopLoop();
-    this.trajPath.dispose();
     window.removeEventListener('resize', this._onResize);
   }
 }

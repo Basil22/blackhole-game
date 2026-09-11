@@ -20,11 +20,20 @@ export function gravityAcceleration(w, out, pos) {
   return out;
 }
 
-// Apply gravity + spring forces, integrate with semi-implicit Euler.
+// Proximity factor: 0 at 4×hr, 1 at hr. Used to scale tidal effects by distance.
+function proximityFactor(r, hr) {
+  if (r <= hr) return 1;
+  if (r >= hr * 4) return 0;
+  return 1 - (r - hr) / (hr * 3);
+}
+
+// Apply gravity + lateral compression + proximity-softened springs, integrate.
 export function integrate(w, dt) {
   const f = w._f;
   const bodies = w.bodies;
   const n = bodies.length;
+  const hr = w.horizonRadius;
+  const lc = w.lateralCompression;
 
   for (let i = 0; i < n; i++) { const v = f[i]; v.x = 0; v.y = 0; v.z = 0; }
 
@@ -37,22 +46,63 @@ export function integrate(w, dt) {
       f[i].x += w._scratch.x * p.mass;
       f[i].y += w._scratch.y * p.mass;
       f[i].z += w._scratch.z * p.mass;
+
+      // Lateral compression: squeeze the point toward the radial axis (the
+      // line from the BH center through the COM). This mimics the convergence
+      // of geodesics near the hole — real tidal forces compress laterally while
+      // stretching radially. The squeeze grows with proximity so it only kicks
+      // in close to the hole, keeping distant flight unaffected.
+      if (lc > 0) {
+        const r2 = p.pos.x * p.pos.x + p.pos.y * p.pos.y + p.pos.z * p.pos.z;
+        if (r2 > 1e-6) {
+          const r = Math.sqrt(r2);
+          const prox = proximityFactor(r, hr);
+          if (prox > 0) {
+            // radial unit vector
+            const ir = 1 / r;
+            const rx = p.pos.x * ir, ry = p.pos.y * ir, rz = p.pos.z * ir;
+            // tangential component of position (pos - radial projection)
+            const dot = p.pos.x * rx + p.pos.y * ry + p.pos.z * rz;
+            const tx = p.pos.x - dot * rx;
+            const ty = p.pos.y - dot * ry;
+            const tz = p.pos.z - dot * rz;
+            // force toward the radial axis, scaled by proximity and gravity
+            const gravMag = Math.sqrt(w._scratch.x * w._scratch.x + w._scratch.y * w._scratch.y + w._scratch.z * w._scratch.z);
+            const squeeze = lc * prox * gravMag * p.mass;
+            f[i].x -= tx * squeeze;
+            f[i].y -= ty * squeeze;
+            f[i].z -= tz * squeeze;
+          }
+        }
+      }
     }
   }
 
-  // springs
+  // springs — stiffness softens with proximity so tidal forces win near the BH
   for (const s of w.springs) {
     if (!s.alive) continue;
     const a = bodies[s.a], b = bodies[s.b];
-    if (!a.alive || !b.alive) continue; // consumed this/prior substep — no force
+    if (!a.alive || !b.alive) continue;
     const dx = b.pos.x - a.pos.x, dy = b.pos.y - a.pos.y, dz = b.pos.z - a.pos.z;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
     const invD = 1 / dist;
     const ux = dx * invD, uy = dy * invD, uz = dz * invD;
     const extension = dist - s.rest;
-    // relative velocity along the spring axis
+    // Proximity-based spring softening: as the midpoint of the spring nears
+    // the BH, the spring becomes weaker. This lets gravity overwhelm the
+    // object's structural integrity near the horizon, causing elongation.
+    const mx = (a.pos.x + b.pos.x) * 0.5;
+    const my = (a.pos.y + b.pos.y) * 0.5;
+    const mz = (a.pos.z + b.pos.z) * 0.5;
+    const mr = Math.sqrt(mx * mx + my * my + mz * mz);
+    const prox = proximityFactor(mr, hr);
+    // At full proximity (r=hr), springs are 35% of their original stiffness.
+    // At no proximity (r=4×hr), springs are at full stiffness.
+    const softFactor = 1 - prox * 0.65;
+    const stiff = s.stiff * softFactor;
+    const damp = s.damp * softFactor;
     const vrel = (b.vel.x - a.vel.x) * ux + (b.vel.y - a.vel.y) * uy + (b.vel.z - a.vel.z) * uz;
-    const fm = s.stiff * extension + s.damp * vrel; // force magnitude (a pulls toward b)
+    const fm = stiff * extension + damp * vrel;
     const fx = ux * fm, fy = uy * fm, fz = uz * fm;
     f[s.a].x += fx; f[s.a].y += fy; f[s.a].z += fz;
     f[s.b].x -= fx; f[s.b].y -= fy; f[s.b].z -= fz;
@@ -101,14 +151,23 @@ export function resolveTears(w) {
   }
 }
 
-// Remove points inside the horizon, emit consumption events.
+// Gradual absorption + despawn. Points entering the capture zone
+// (captureRadius) begin a gradual pull toward the center with shrinking.
+// They're fully consumed (alive=false) when captureProgress reaches 1 or
+// they cross the inner horizon. Points beyond despawnRadius are silently removed.
 export function resolveHorizon(w) {
   const hr = w.horizonRadius;
+  const cr = w.captureRadius;
+  const rate = w.captureRate;
+  const h = w.dt / w.substeps; // current substep dt
   for (let i = 0; i < w.bodies.length; i++) {
     const p = w.bodies[i];
     if (!p.alive) continue;
     const r2 = V3.lengthSq(p.pos);
-    if (r2 <= hr * hr) {
+
+    // Hard inner horizon — anything that reaches 0.7× horizon is fully consumed
+    // regardless of capture progress (safety net).
+    if (r2 <= (hr * 0.7) * (hr * 0.7)) {
       p.alive = false;
       w.events.push({
         type: 'consume',
@@ -117,9 +176,44 @@ export function resolveHorizon(w) {
         vel: V3.clone(p.vel),
         radius: p.radius,
       });
-    } else if (r2 > w.despawnRadius * w.despawnRadius) {
-      // tidal slingshot flung this fragment far outside the scene — remove it
-      // silently so objects always come to a clean end.
+      continue;
+    }
+
+    const r = Math.sqrt(r2);
+
+    // Inside capture zone: gradual absorption
+    if (r <= cr) {
+      // Ramp capture progress faster the deeper inside the zone
+      const depth = 1 - (r - hr * 0.7) / (cr - hr * 0.7); // 0 at cr, 1 at 0.7×hr
+      const depthClamped = Math.max(0, Math.min(1, depth));
+      const rampRate = rate * (0.3 + 0.7 * depthClamped);
+      p.captureProgress = Math.min(1, p.captureProgress + rampRate * h);
+
+      // Pull the point inward toward origin (accelerating absorption pull)
+      const pullStrength = 40 * p.captureProgress * p.captureProgress;
+      if (r > 1e-3) {
+        const ir = 1 / r;
+        p.vel.x -= p.pos.x * ir * pullStrength * h;
+        p.vel.y -= p.pos.y * ir * pullStrength * h;
+        p.vel.z -= p.pos.z * ir * pullStrength * h;
+      }
+
+      // Fully absorbed
+      if (p.captureProgress >= 1) {
+        p.alive = false;
+        w.events.push({
+          type: 'consume',
+          index: i,
+          pos: V3.clone(p.pos),
+          vel: V3.clone(p.vel),
+          radius: p.radius,
+        });
+      }
+      continue;
+    }
+
+    // Outside capture zone but beyond despawn radius
+    if (r2 > w.despawnRadius * w.despawnRadius) {
       p.alive = false;
     }
   }

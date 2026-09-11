@@ -112,7 +112,7 @@ test('recommendation skips un-injected objects and falls back over profiles', ()
   const catalog = LIVE_CATALOG.filter((o) => o.id !== 'rock');
   const r = getRecommendedObject(m, catalog);
   assert.strictEqual(r.objectId, 'planet', 'falls back to next available declared object');
-  assert.ok(r.reason.includes('EXTREME'), 'reason reflects the object difficulty tier');
+  assert.ok(r.reason.includes('Extreme'), 'reason reflects the object difficulty tier');
 });
 
 test('recommendation falls back to a profile-recommended object when mission list absent', () => {
@@ -187,7 +187,7 @@ test('isKnownMission / getMissionChallenge behave defensively', () => {
   assert.strictEqual(isKnownMission('not-a-mission'), false);
   const ch = getMissionChallenge('orbit-01');
   assert.ok(ch && ch.mission.id === 'orbit-01', 'challenge view for a known mission');
-  assert.strictEqual(ch.difficulty.label, 'CHALLENGING', 'difficulty label matches');
+  assert.strictEqual(ch.difficulty.label, 'Challenging', 'difficulty label matches');
   assert.strictEqual(getMissionChallenge('not-a-mission'), null, 'unknown → null');
   assert.strictEqual(getMissionChallenge(null), null, 'garbage → null');
   const d1 = missionDifficulty(1);

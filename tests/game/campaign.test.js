@@ -151,11 +151,11 @@ test('lock hints name the exact level to clear', () => {
   assert.strictEqual(unlockLevelForObject('rock', []), 0);
   assert.strictEqual(unlockHintForObject('rock', []), '');
   assert.strictEqual(unlockLevelForObject('human', []), 1);
-  assert.strictEqual(unlockHintForObject('human', []), 'CLEAR LEVEL 1');
+  assert.strictEqual(unlockHintForObject('human', []), 'Clear Level 1');
   assert.strictEqual(unlockLevelForObject('ship', []), 2);
-  assert.strictEqual(unlockHintForObject('ship', []), 'CLEAR LEVEL 2');
+  assert.strictEqual(unlockHintForObject('ship', []), 'Clear Level 2');
   assert.strictEqual(unlockLevelForObject('planet', []), 3);
-  assert.strictEqual(unlockHintForObject('planet', []), 'CLEAR LEVEL 3');
+  assert.strictEqual(unlockHintForObject('planet', []), 'Clear Level 3');
   const l1done = completedLevelIds(L1_REQ);
   assert.strictEqual(unlockHintForObject('human', l1done), '');
   assert.strictEqual(unlockLevelForObject('human', l1done), 0);

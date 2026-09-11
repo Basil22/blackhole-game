@@ -26,7 +26,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 // ----------------------------------------------------------- catalog ----
 test('event catalog: complete, self-consistent sound/haptic/throttle data', () => {
   const names = Object.keys(SOUNDS);
-  assert.strictEqual(names.length, 14);
+  assert.strictEqual(names.length, 18);
   // every event has a playable synth definition
   for (const n of names) {
     const d = SOUNDS[n];

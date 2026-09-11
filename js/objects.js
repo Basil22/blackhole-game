@@ -19,9 +19,10 @@ export const CATALOG = [
       const idx = buildStar(world, origin, {
         points: 12,
         radius,
-        stiffness: 500 * size,
-        damping: 12,
-        breakStrain: 0.5,
+        stiffness: 250 * size,
+        damping: 8,
+        breakStrain: 1.2,
+        shellBreakStrain: 1.8,
         mass: 1.2 * size,
         color: 0x9a8f7c,
       });
@@ -57,8 +58,8 @@ export const CATALOG = [
       const handL = at(-1.15, 0.3, 0.9);
       const handR = at(1.15, 0.3, 0.9);
       const pack = at(-0.3, -0.18, 1.25);
-      const stiff = 400 * s, damp = 6;
-      const spr = (a, b, st, br = 0.7) => world.addSpring(a, b, st, damp, br, 0xd8d8e8);
+      const stiff = 180 * s, damp = 4;
+      const spr = (a, b, st, br = 1.5) => world.addSpring(a, b, st, damp, br, 0xd8d8e8);
       // pelvis ring
       spr(pelvis, lHip, stiff); spr(pelvis, rHip, stiff);
       spr(lHip, waist, stiff); spr(rHip, waist, stiff);
@@ -73,7 +74,7 @@ export const CATALOG = [
       spr(shL, elbL, stiff); spr(elbL, handL, stiff);
       spr(shR, elbR, stiff); spr(elbR, handR, stiff);
       // backpack
-      spr(chest, pack, 300 * s);
+      spr(chest, pack, 140 * s);
       const all = [lHip, rHip, pelvis, waist, chest, shoulders, head, lKnee, rKnee, lFoot, rFoot, shL, shR, elbL, elbR, handL, handR, pack];
       return {
         indices: all, kind: 'human', size: s, color: 0xe8ecf5,
@@ -107,14 +108,14 @@ export const CATALOG = [
       const finBot = addPt(0, -1.4 * s, len * 0.40, 1.2 * s, 0.3 * s);
       for (const i of [nose, mid, tail, wingL, wingR, finTop, finBot]) idx.push(i);
 
-      const stiff = 1000 * s, damp = 8;
+      const stiff = 450 * s, damp = 6;
       const spr = (a, b, st, br, color) => world.addSpring(a, b, st, damp, br, color);
-      spr(nose, mid, stiff, 0.3, 0x8fa8c8);
-      spr(mid, tail, stiff, 0.3, 0x8fa8c8);
-      spr(mid, finTop, 600 * s, 0.3, 0x5a6a80);
-      spr(mid, finBot, 600 * s, 0.3, 0x5a6a80);
-      spr(mid, wingL, 250 * s, 0.12, 0xd06050);
-      spr(mid, wingR, 250 * s, 0.12, 0xd06050);
+      spr(nose, mid, stiff, 1.5, 0x8fa8c8);
+      spr(mid, tail, stiff, 1.5, 0x8fa8c8);
+      spr(mid, finTop, 300 * s, 1.2, 0x5a6a80);
+      spr(mid, finBot, 300 * s, 1.2, 0x5a6a80);
+      spr(mid, wingL, 120 * s, 0.8, 0xd06050);
+      spr(mid, wingR, 120 * s, 0.8, 0xd06050);
       return {
         indices: idx, kind: 'ship', size: s, color: 0x8fa8c8, baseRadius: 1.1 * s,
         special: { nose, mid, tail, wingL, wingR, finTop, finBot },
@@ -131,10 +132,10 @@ export const CATALOG = [
       const idx = buildStar(world, origin, {
         points: 30,
         radius,
-        stiffness: 30 * size,
-        damping: 0.6,
-        breakStrain: 0.38,
-        shellBreakStrain: 0.9,
+        stiffness: 20 * size,
+        damping: 0.4,
+        breakStrain: 0.5,
+        shellBreakStrain: 0.8,
         brace: true,
         mass: size,
         color: 0x7ab8ff,

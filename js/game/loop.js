@@ -39,13 +39,15 @@ export function startLoop(game) {
     const prox = computeProximity(game);
     game.scene.bh?.setProximity(prox);
     game.audio?.setProximity(prox);
+    // Auto slow-mo: smoothly decelerate when near the horizon
+    if (game.updateAutoSlow) game.updateAutoSlow(prox);
     if (prox >= 0.92 && !game._horizonSounded) {
       game._horizonSounded = true;
       game.audio?.horizon();
     }
     game.scene.update(dtReal, game.simTime);
     game.particles.update(dtReal);
-    game.trajPath.tick(dtReal);   // post-launch predicted-path ghost fade
+    game.trajPath.tick(dtReal);
 
     game._readoutTimer -= dtReal;
     if (game._readoutTimer <= 0) {
@@ -55,14 +57,6 @@ export function startLoop(game) {
 
     // update held preview (frozen in place while aiming)
     if (game.held) game.held.visualizer.update(game.held.world);
-
-    // Phase G: record trail positions for each flying object
-    for (const o of game.objects) {
-      if (o._trailId != null && o.world.bodies.length > 0 && o.world.bodies[0].alive) {
-        game.trails.record(o._trailId, o.world.bodies[0].pos);
-      }
-    }
-    game.trails.update();
 
     // update flying objects, drop finished ones
     for (let i = game.objects.length - 1; i >= 0; i--) {
@@ -84,7 +78,6 @@ export function startLoop(game) {
         }
         if (game.onThrowEnded) game.onThrowEnded(game.lastTelemetry, game.lastScore);
         o.visualizer.dispose();
-        if (o._trailId != null) game.trails.remove(o._trailId);
         game.objects.splice(i, 1);
       }
     }

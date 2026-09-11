@@ -1,64 +1,71 @@
-// game/scoring/score.js — pure composition: ThrowTelemetry → ThrowScore.
-// Pure: no Math.random, no Date.now/performance.now, no module state, no DOM,
-// no three.js, no access to the live physics world. Identical telemetry → bit-
-// identical score. The result is plain, serializable data.
+// game/scoring/score.js — V2 uncapped scoring composition.
+// ThrowTelemetry → ThrowScore. Pure: no Math.random, no Date.now, no module
+// state, no DOM, no three.js. Identical telemetry → identical score.
+//
+// Categories: Stretch, Precision, Absorption, Destruction (base score).
+// Survival multiplier applied on top. No hard cap.
 
 import { SCORING_CONFIG } from './config.js';
 import {
-  precision, tidal, destruction, survival, orbital, nearHorizonSurvivalBonus,
+  stretch, precision, absorption, destruction, survivalMultiplier,
 } from './categories.js';
 
-// Build an empty category row. `max` = weight · maxTotalScore, so normalized 1
-// always yields exactly its cap — bounded by construction.
-function makeCat(key, label, max) {
-  return { key, label, score: 0, normalized: 0, max: Math.round(max) };
+function makeCat(key, label) {
+  return { key, label, score: 0 };
 }
 
 export function calculateThrowScore(telemetry, config = SCORING_CONFIG) {
-  const maxTotal = config.maxTotalScore;
-  const w = config.weights;
-
   const cats = {
-    precision: makeCat('precision', 'Precision', w.precision * maxTotal),
-    tidal: makeCat('tidal', 'Tidal', w.tidal * maxTotal),
-    destruction: makeCat('destruction', 'Destruction', w.destruction * maxTotal),
-    survival: makeCat('survival', 'Survival', w.survival * maxTotal),
-    orbital: makeCat('orbital', 'Orbital', w.orbital * maxTotal),
+    stretch: makeCat('stretch', 'Stretch'),
+    precision: makeCat('precision', 'Precision'),
+    absorption: makeCat('absorption', 'Absorption'),
+    destruction: makeCat('destruction', 'Destruction'),
   };
 
+  stretch(cats.stretch, telemetry, config);
   precision(cats.precision, telemetry, config);
-  tidal(cats.tidal, telemetry, config);
+  absorption(cats.absorption, telemetry, config);
   destruction(cats.destruction, telemetry, config);
-  survival(cats.survival, telemetry, config);
-  orbital(cats.orbital, telemetry);
 
-  const bonus = nearHorizonSurvivalBonus(telemetry, config);
+  const baseTotal = cats.stretch.score + cats.precision.score
+    + cats.absorption.score + cats.destruction.score;
+
+  const surv = survivalMultiplier(telemetry, config);
+
+  const total = Math.round(baseTotal * surv.multiplier);
 
   const breakdown = [
-    cats.precision, cats.tidal, cats.destruction, cats.survival, cats.orbital,
-  ].map((c) => ({ ...c }));
+    { ...cats.stretch },
+    { ...cats.precision },
+    { ...cats.absorption },
+    { ...cats.destruction },
+  ];
 
-  const bonusRow = {
-    key: 'nearHorizonSurvival', label: 'NEAR-HORIZON SURVIVAL',
-    score: bonus.score, normalized: bonus.normalized, max: bonus.max,
-    eligible: bonus.eligible, closestApproach: bonus.closestApproach,
+  // Add survival multiplier as a display row
+  const survRow = {
+    key: 'survival', label: 'Survival',
+    score: total - baseTotal, // the bonus points from survival
+    multiplier: surv.multiplier,
+    survived: surv.survived,
+    closestApproach: surv.closestApproach,
+    timeNearHorizon: surv.timeNearHorizon,
   };
-  breakdown.push(bonusRow);
-
-  const total = breakdown.reduce((sum, row) => sum + row.score, 0);
+  breakdown.push(survRow);
 
   return {
     total,
-    maxTotal: maxTotal + config.bonus.nearHorizonSurvivalMax,
+    baseTotal,
+    // No hard max — uncapped scoring. maxTotal is an estimate for UI display
+    // (progress bars, etc). Set to a "reference excellent" score.
+    maxTotal: 0,
     horizonRadius: config.horizonRadius,
     categories: {
+      stretch: { ...cats.stretch },
       precision: { ...cats.precision },
-      tidal: { ...cats.tidal },
+      absorption: { ...cats.absorption },
       destruction: { ...cats.destruction },
-      survival: { ...cats.survival },
-      orbital: { ...cats.orbital },
     },
-    bonus: { nearHorizonSurvival: bonus },
+    survival: surv,
     breakdown,
   };
 }

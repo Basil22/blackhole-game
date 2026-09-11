@@ -47,6 +47,10 @@ export function makeTelemetry(overrides = {}) {
     remainingPointCount: 12,
     remainingMass: 12,
     despawnedPointCount: 0,
+    firstConsumeTime: 0,
+    lastConsumeTime: 0,
+    absorptionDuration: 0,
+    consumptionFraction: 0,
 
     trajectoryState: 'ESCAPING',
     terminationReason: 'DESPAWN',

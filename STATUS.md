@@ -273,7 +273,9 @@ packaged as an Android APK via Capacitor. No build step.
 
 ### Phase 7: Social & competitive features
 
-- [ ] Global leaderboard per mission (anonymous, opt-in)
+- [ ] Global leaderboard per mission (uncapped scoring makes this meaningful)
+- [ ] All-time and weekly leaderboard views
+- [ ] Leaderboard backend (server-side score validation, anti-cheat)
 - [ ] Weekly leaderboard reset
 - [ ] Share score card (image with score + stars + mission name)
 - [ ] Friend challenge: share a daily challenge link
@@ -286,7 +288,17 @@ packaged as an Android APK via Capacitor. No build step.
   - "Deep Pockets" — earn 10,000 coins
   - "Collector" — own 10 skins
 
-### Phase 8: Content expansion
+### Phase 8: Chaos Mode
+
+- [ ] Unscored sandbox mode: throw unlimited objects without score dialogs
+- [ ] Rapid-fire throwing: tap to throw continuously, objects pile up
+- [ ] No result panel interruptions — pure visual spectacle
+- [ ] Multiple simultaneous objects in flight (no single-throw restriction)
+- [ ] Accessible from the menu or a dedicated mode toggle
+- [ ] Optional slow-mo still works for cinematic moments
+- [ ] Performance budget: cap simultaneous objects to maintain 60fps
+
+### Phase 9: Content expansion
 
 - [ ] New black hole types:
   - Supermassive (gentle stretch, slow fall — different gameplay feel)
@@ -296,7 +308,7 @@ packaged as an Android APK via Capacitor. No build step.
 - [ ] Seasonal events (limited-time missions, exclusive skins)
 - [ ] Boss challenges (survive N seconds near a hostile black hole)
 
-### Phase 9: Platform expansion
+### Phase 10: Platform expansion
 
 - [ ] iOS build (Capacitor + Apple Developer account)
 - [ ] App Store submission
@@ -305,7 +317,7 @@ packaged as an Android APK via Capacitor. No build step.
 - [ ] Cloud save (sync progress across devices)
 - [ ] Push notifications (daily challenge reminder, streak about to break)
 
-### Phase 10: Analytics & optimization
+### Phase 11: Analytics & optimization
 
 - [ ] Event tracking (throws, mission completions, purchases, ad views)
 - [ ] Funnel analysis (install -> first throw -> first mission -> first purchase)

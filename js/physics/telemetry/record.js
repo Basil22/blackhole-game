@@ -162,6 +162,13 @@ export function finalizeThrow(tm, world, reason) {
     remainingPointCount: remPoints,
     remainingMass: remMass,
     despawnedPointCount: despawned,
+    // Absorption timing: how gradually the object was consumed
+    firstConsumeTime: tm.firstConsumeTime,
+    lastConsumeTime: tm.lastConsumeTime,
+    absorptionDuration: tm.consumedPointCount > 1
+      ? tm.lastConsumeTime - tm.firstConsumeTime : 0,
+    consumptionFraction: tm.initialPointCount > 0
+      ? tm.consumedPointCount / tm.initialPointCount : 0,
 
     trajectoryState: trajState,
     terminationReason: reason,
