@@ -22,6 +22,6 @@
     "@capacitor/share": "^6.0.0"
   },
   "dependencies": {
-    "@capacitor/app": "^8.1.1"
+    "@capacitor/app": "^6.0.0"
   }
 }
