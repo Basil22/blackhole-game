@@ -10,8 +10,8 @@ export function buildBlackHole(scene, hr) {
 
   // --- accretion disk: flat tilted ring ---
   // A plain ring tilted ~57° so it passes in FRONT of AND behind the hole —
-  // the classic black-hole shot. The sphere's near half naturally occludes
-  // the disk's far side, which reads as light bending around the shadow.
+  // the classic black-hole shot. The sphere's near half occludes the disk's far side,
+  // which reads as light bending around the shadow.
   const diskInner = hr * 1.35;
   const diskOuter = hr * 3.2;
   const diskGroup = new THREE.Group();
@@ -24,12 +24,12 @@ export function buildBlackHole(scene, hr) {
   scene.add(diskGroup);
 
   // --- photon ring: thin bright circle hugging the horizon ---
-  // Camera-facing (billboard) so it reads as a complete ring around the
+  // Camera-facing (billboard) so it reads as a closed ring around the
   // shadow no matter how you orbit the camera — like the real photon ring,
   // which is a closed circle from every viewing angle.
   const prGeo = new THREE.RingGeometry(hr * 1.04, hr * 1.12, 96, 1);
   const prMat = new THREE.MeshBasicMaterial({
-    color: 0xffe135, // Phase 30 — canary photon ring
+    color: 0xffe8c0, // Phase 21 — canary photon ring (originally)
     transparent: true,
     opacity: 0.6,
     blending: THREE.AdditiveBlending,
@@ -44,7 +44,7 @@ export function buildBlackHole(scene, hr) {
   scene.add(photonRing);
 
   // --- soft outer glow billboard ---
-  const glowSprite = makeGlowSprite(hr * 6.0, 0xff3d8a, 0.9);
+  const glowSprite = makeGlowSprite(hr * 6.0, 0xffb060, 0.9);
   glowSprite.renderOrder = -1;
   scene.add(glowSprite);
 
@@ -78,9 +78,8 @@ function makeDiskMaterial(inner, outer) {
     uniforms: {
       uInner: { value: inner },
       uOuter: { value: outer },
-      // Phase 30c-2 — cartoon disk ramp: canary-hot inner → cadmium orange outer.
-      uColor: { value: new THREE.Color(0xff6b1a) },
-      uColorHot: { value: new THREE.Color(0xffe135) },
+      uColor: { value: new THREE.Color(0xffb060) },
+      uColorHot: { value: new THREE.Color(0xfff2d8) },
       uOpacity: { value: 0.95 },
       uTime: { value: 0 },
     },
@@ -115,12 +114,17 @@ function makeDiskMaterial(inner, outer) {
         float band2 = sin(angle * 13.0 - uTime * 1.3 - t * 30.0);
         float shimmer = 1.0 + 0.30 * band * (1.0 - t) + 0.14 * band2 * (1.0 - t);
 
-        vec3 col = mix(uColorHot, uColor, pow(t, 0.8));
-        col *= falloff * beam * shimmer * uOpacity * 1.25;
+        // Painterly gradient-banding (soft posterization)
+        float brightRaw = falloff * beam * shimmer * uOpacity * 1.25;
+        float scaled = brightRaw * 4.0;
+        float stepped = floor(scaled + 0.5) / 4.0;
+        // Less aggressive blending: keep 60% of original, 40% posterized.
+        float bright = mix(brightRaw, stepped, 0.4);
 
-        vec3 scaled = col * 4.0;
-        vec3 stepped = floor(scaled + 0.5) / 4.0;
-        col = mix(col, stepped, 0.5);
+        vec3 col = mix(uColorHot, uColor, pow(t, 0.8)) * bright;
+
+        // Rim light
+        col += vec3(0.8, 0.9, 1.0) * pow(1.0 - t, 4.0) * falloff * 0.5;
 
         float alpha = falloff * beam * 0.95;
         gl_FragColor = vec4(col, alpha);
@@ -139,10 +143,9 @@ function makeGlowSprite(radius, color, opacity) {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  // Phase 30 — canary heart → magenta corona → transparent edge.
-  grad.addColorStop(0, 'rgba(255,225,53,0.9)');
-  grad.addColorStop(0.3, 'rgba(255,61,138,0.35)');
-  grad.addColorStop(1, 'rgba(255,61,138,0)');
+  grad.addColorStop(0, 'rgba(255,190,120,0.9)');
+  grad.addColorStop(0.3, 'rgba(255,140,60,0.35)');
+  grad.addColorStop(1, 'rgba(255,120,40,0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 256, 256);
   const tex = new THREE.CanvasTexture(canvas);

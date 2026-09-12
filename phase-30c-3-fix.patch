@@ -1,0 +1,53 @@
+diff --git a/js/render/blackhole.js b/js/render/blackhole.js
+index 4a7762f..96141c0 100644
+--- a/js/render/blackhole.js
++++ b/js/render/blackhole.js
+@@ -115,12 +115,16 @@ function makeDiskMaterial(inner, outer) {
+         float band2 = sin(angle * 13.0 - uTime * 1.3 - t * 30.0);
+         float shimmer = 1.0 + 0.30 * band * (1.0 - t) + 0.14 * band2 * (1.0 - t);
+ 
+-        vec3 col = mix(uColorHot, uColor, pow(t, 0.8));
+-        col *= falloff * beam * shimmer * uOpacity * 1.25;
++        // Phase 30c-3 — band BRIGHTNESS only, keep hue on the single
++        // mix(uColorHot, uColor, ...) line below. The previous version
++        // posterized col (R/G/B independently) after multiplying in the hue,
++        // which shifted hue at each channel's rounding threshold and produced
++        // colors outside the intended gradient (rainbow contour-map artifact).
++        float brightRaw = falloff * beam * shimmer * uOpacity * 1.25;
++        float brightStepped = floor(brightRaw * 4.0 + 0.5) / 4.0;
++        float bright = mix(brightRaw, brightStepped, 0.6);
+ 
+-        vec3 scaled = col * 4.0;
+-        vec3 stepped = floor(scaled + 0.5) / 4.0;
+-        col = mix(col, stepped, 0.5);
++        vec3 col = mix(uColorHot, uColor, pow(t, 0.8)) * bright;
+ 
+         float alpha = falloff * beam * 0.95;
+         gl_FragColor = vec4(col, alpha);
+diff --git a/js/render/blackhole/lensing.js b/js/render/blackhole/lensing.js
+index 4a78bf7..f2c874b 100644
+--- a/js/render/blackhole/lensing.js
++++ b/js/render/blackhole/lensing.js
+@@ -124,12 +124,17 @@ export function createLensingPass({ renderer, scene, camera, hr, quality = 'medi
+       uniform vec4 uUv;
+       varying vec2 vUv;
+ 
++      // Phase 30c-3 — quantize LUMINANCE only, then rescale all three channels
++      // by the same ratio. Quantizing R/G/B independently (the previous
++      // version) breaks the relationship between channels and introduces
++      // hues that were never in the source gradient (visible as a rainbow
++      // contour-map artifact); scaling by a single ratio preserves hue exactly.
+       vec3 posterizeColor(vec3 c, float bands) {
+-        vec3 scaled = c * bands;
+-        vec3 stepped = floor(scaled + 0.5) / bands;
+-        vec3 distToEdge = abs(fract(scaled + 0.5) - 0.5);
+-        vec3 ink = smoothstep(0.0, 0.12, distToEdge);
+-        return mix(c, stepped, 0.6) * mix(vec3(1.0), ink, 0.5);
++        float lum = dot(c, vec3(0.299, 0.587, 0.114));
++        float lumStepped = floor(lum * bands + 0.5) / bands;
++        float ratio = lum > 0.0008 ? (lumStepped / lum) : 0.0;
++        vec3 stepped = c * ratio;
++        return mix(c, stepped, 0.6);
+       }
+ 
+       void main(){

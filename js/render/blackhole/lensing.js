@@ -72,12 +72,9 @@ export function createLensingPass({ renderer, scene, camera, hr, quality = 'medi
       uUv: { value: new THREE.Vector4(1.0, 1.0, 0.0, 0.0) }, // upscale source rect
       uSteps: { value: 72 },
       uProximity: { value: 0 },
-      // Phase 30c-2 — cartoon ramp (core→disk: canary → orange → dark ember).
-      // Hot inner collar = Canary #FFE135, mid plasma = Cadmium Orange #FF6B1A,
-      // outer disk soak = dark ember #3A1206. Lensing math untouched.
-      uHot: { value: new THREE.Color(0xFFE135) },
-      uWarm: { value: new THREE.Color(0xFF6B1A) },
-      uCool: { value: new THREE.Color(0x3A1206) },
+      uHot: { value: new THREE.Color(0xfff2d8) },
+      uWarm: { value: new THREE.Color(0xffb060) },
+      uCool: { value: new THREE.Color(0x7a2508) },
       uHotIntensity: { value: 1.0 },
       uCutoff: { value: 1.0 }, // 0..1 internal-quality blend
       uSegments: { value: 20 }, // low-poly angular facet count (quality)
@@ -121,23 +118,30 @@ export function createLensingPass({ renderer, scene, camera, hr, quality = 'medi
     fragmentShader: `
       uniform sampler2D uTex;
       uniform vec2 uRes;
-      uniform vec4 uUv;
+      uniform vec4 uUv; // x,y = scale; z,w = offset
       varying vec2 vUv;
-
+      // Painterly gradient-banding (soft posterization) for comic look.
+      // Band edges are smoothstepped rather than hard-cut to survive upscale.
       vec3 posterizeColor(vec3 c, float bands) {
         vec3 scaled = c * bands;
         vec3 stepped = floor(scaled + 0.5) / bands;
-        vec3 distToEdge = abs(fract(scaled + 0.5) - 0.5);
-        vec3 ink = smoothstep(0.0, 0.12, distToEdge);
-        return mix(c, stepped, 0.6) * mix(vec3(1.0), ink, 0.5);
+        return mix(c, stepped, 0.4);
       }
 
-      void main(){
-        vec2 tc = vUv * uUv.xy + uUv.zw;
-        vec3 col = texture2D(uTex, tc).rgb;
-        col = posterizeColor(col, 4.0);
-        gl_FragColor = vec4(col, 1.0);
-      }
+  // Painterly gradient-banding (soft posterization) for comic look.
+  // Band edges are smoothstepped rather than hard-cut to survive upscale.
+  vec3 posterizeColor(vec3 c, float bands) {
+    vec3 scaled = c * bands;
+    vec3 stepped = floor(scaled + 0.5) / bands;
+    return mix(c, stepped, 0.4);
+  }
+
+  void main(){
+    vec2 tc = vUv * uUv.xy + uUv.zw;
+    vec3 col = texture2D(uTex, tc).rgb;
+    col = posterizeColor(col, 4.0);
+    gl_FragColor = vec4(col, 1.0);
+  }
     `,
     transparent: true,
     blending: THREE.AdditiveBlending,
