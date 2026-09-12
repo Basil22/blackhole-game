@@ -36,6 +36,11 @@ export const SOUNDS = Object.freeze({
   'mission-complete': { amp: 0.1, dur: 0.5, kind: 'notes' },
   'mission-failed': { amp: 0.08, dur: 0.32, kind: 'low' },
   'mission-unlock': { amp: 0.06, dur: 0.22, kind: 'ticks' },
+  // Phase H: expanded sound palette
+  'star-reveal': { amp: 0.07, dur: 0.16, kind: 'blip' },
+  'new-best': { amp: 0.08, dur: 0.26, kind: 'notes' },
+  'daily-complete': { amp: 0.1, dur: 0.5, kind: 'notes' },
+  'orbit-insert': { amp: 0.07, dur: 0.4, kind: 'rise' },
 });
 
 // Semantic event -> haptic gesture (see haptics.js for the patterns).
@@ -54,6 +59,10 @@ export const HAPTIC_MAP = Object.freeze({
   'mission-complete': 'success',
   'mission-failed': 'failure',
   'mission-unlock': 'success',
+  'star-reveal': 'tap',
+  'new-best': 'success',
+  'daily-complete': 'success',
+  'orbit-insert': 'tap',
 });
 
 // Per-event throttle rules (seconds). The first event fires immediately; later
@@ -70,6 +79,10 @@ export const EVENT_CONFIG = Object.freeze({
   'mission-complete': { cooldown: 0.3 },
   'mission-failed': { cooldown: 0.3 },
   'mission-unlock': { cooldown: 0.3 },
+  'star-reveal': { cooldown: 0.3 },
+  'new-best': { cooldown: 0.5 },
+  'daily-complete': { cooldown: 0.5 },
+  'orbit-insert': { cooldown: 0.5 },
 });
 
 // Subtle per-object tear timbre biases (multipliers, applied by the snap

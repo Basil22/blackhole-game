@@ -95,14 +95,30 @@ export class ObjectVisualizer {
     _dir.copy(_v2).sub(_v1);
     const len = _dir.length() || 1e-4;
     // follow the physics: the segment spans the two real points at TRUE length.
-    // thinning = volume-conserving spaghettification cross-section. Cap the
-    // draw length so a wildly separated pair stays a thin strand, never a
-    // rubber-band elongation. No proximity/power amplification.
+    // thinning = volume-conserving spaghettification cross-section.
     const restLen = p.restLen || p.radius * 2;
     const stretch = len / Math.max(restLen, 1e-3);
-    const amp = Math.min(4, Math.max(stretch, 1));
-    const cross = p.radius * Math.max(0.3, Math.min(1, 1 / Math.sqrt(amp)));
+    // Volume-conserving cross-section thinning: cap stretch factor so segments
+    // don't become infinitely thin threads (they should tear before reaching this).
+    const amp = Math.min(3, Math.max(stretch, 1));
+    const cross = p.radius * Math.max(0.12, Math.min(1, 1 / Math.sqrt(amp)));
     placeAlong(p.mesh, _mid, _dir, len, cross);
+    // Absorption visual: fade + color shift based on capture progress of endpoints
+    const capA = a.captureProgress || 0, capB = bb.captureProgress || 0;
+    const cap = Math.max(capA, capB);
+    if (cap > 0 && p.mesh.material) {
+      p.mesh.material.opacity = Math.max(0.05, 1 - cap * 0.9);
+      p.mesh.material.transparent = true;
+      // Color shift: base → warm orange → dim red as stretch + capture increase
+      const stretchGlow = Math.min(1, (stretch - 1) / 4);
+      const r = Math.min(1, p.mesh.material._baseR != null ? p.mesh.material._baseR : 0.8);
+      const shift = Math.max(stretchGlow, cap);
+      if (shift > 0.1) {
+        p.mesh.material.emissive = p.mesh.material.emissive || new THREE.Color();
+        p.mesh.material.emissive.setRGB(shift * 0.6, shift * 0.15, 0);
+        p.mesh.material.emissiveIntensity = shift * 0.8;
+      }
+    }
   }
 
   _updBall(p, b) {
@@ -115,7 +131,14 @@ export class ObjectVisualizer {
       _v1.addScaledVector(_dir, p.offset);
     }
     p.mesh.position.copy(_v1);
-    p.mesh.scale.setScalar(p.radius);
+    // Shrink + fade as the point is being absorbed
+    const cap = a.captureProgress || 0;
+    const scale = p.radius * (1 - cap * 0.8);
+    p.mesh.scale.setScalar(Math.max(0.01, scale));
+    if (cap > 0 && p.mesh.material) {
+      p.mesh.material.opacity = Math.max(0.05, 1 - cap * 0.9);
+      p.mesh.material.transparent = true;
+    }
   }
 
   _updBlade(p, b) {
@@ -127,9 +150,17 @@ export class ObjectVisualizer {
     _dir.copy(_v2).sub(_v1);
     const len = _dir.length() || 1e-4;
     p.mesh.position.copy(_mid);
-    _quat.setFromUnitVectors(_up, _dir.clone().normalize());
+    _dir.normalize();
+    _quat.setFromUnitVectors(_up, _dir);
     p.mesh.quaternion.copy(_quat);
     p.mesh.scale.set(p.chord, len, p.thick);
+    // Absorption visual for blades
+    const capA = a.captureProgress || 0, capB = t.captureProgress || 0;
+    const cap = Math.max(capA, capB);
+    if (cap > 0 && p.mesh.material) {
+      p.mesh.material.opacity = Math.max(0.05, 1 - cap * 0.9);
+      p.mesh.material.transparent = true;
+    }
   }
 
   // ---------- fragment-aware com rendering ----------
@@ -233,17 +264,20 @@ export class ObjectVisualizer {
       sz[c] += pt.pos.z * pt.mass;
     }
 
-    // radial span + transverse radius per component
+    // radial span + transverse radius per component, measured from fragment COM
     for (let k = 0; k < cCount; k++) {
       if (cnt[k] < 1) continue;
       const m = mass[k];
       const cx = sx[k] / m, cy = sy[k] / m, cz = sz[k] / m;
+      // Measure span along the longest axis of the fragment (PCA-lite: use the
+      // axis from the COM to the BH center as the primary, then compute spread).
       const rl = Math.hypot(cx, cy, cz) || 1e-6;
       const ux = cx / rl, uy = cy / rl, uz = cz / rl;
       let minD = Infinity, maxD = -Infinity, trans2 = 0;
       for (let i = 0; i < n; i++) {
         if (comp[i] !== k) continue;
-        const px = b[i].pos.x, py = b[i].pos.y, pz = b[i].pos.z;
+        // relative to fragment COM (not world origin) for accurate sizing
+        const px = b[i].pos.x - cx, py = b[i].pos.y - cy, pz = b[i].pos.z - cz;
         const d = px * ux + py * uy + pz * uz;
         if (d < minD) minD = d;
         if (d > maxD) maxD = d;
@@ -265,6 +299,11 @@ export class ObjectVisualizer {
       if (best !== i) { const t = order[i]; order[i] = order[best]; order[best] = t; }
     }
 
+    // base radius for scaling cap — fragments never render larger than the
+    // original object. Also scale cap per fragment by its mass fraction.
+    const baseR = this._comParts[0].baseRadius || 5;
+    const totalMass = mass.reduce ? (() => { let s = 0; for (let k = 0; k < cCount; k++) s += mass[k]; return s; })() : 1;
+
     // assign com solids (components with >=2 points, in mass order)
     const covered = this._ufSet;
     covered.fill(0);
@@ -275,8 +314,18 @@ export class ObjectVisualizer {
       if (cnt[k] < 2) continue; // singles go to the point-cloud, never a com
       const part = comParts[assigned];
       const span = this._stMax[k] - this._stMin[k];
-      const rScale = Math.max(span / 2, 0.01);
-      const tScale = Math.max(this._stTrans[k], 0.01);
+      const trans = this._stTrans[k];
+
+      // Scale cap: fragment size proportional to its mass fraction of the
+      // original, never exceeding the base radius. This prevents fragments
+      // from appearing larger than the original object after tearing.
+      const massFrac = totalMass > 0 ? mass[k] / totalMass : 1;
+      const maxR = baseR * Math.max(massFrac, 0.15); // floor 15% so tiny fragments are visible
+      const rScale = Math.min(Math.max(span / 2, 0.01), maxR);
+      // Transverse: cap to the same limit, and enforce a minimum so the mesh
+      // doesn't collapse to a flat disc (prevents 2D/3D flickering).
+      const tScale = Math.min(Math.max(trans, rScale * 0.25), maxR);
+
       const cx = this._stCX[k], cy = this._stCY[k], cz = this._stCZ[k];
       const dist = Math.hypot(cx, cy, cz) || 1e-6;
       this._radial.set(cx / dist, cy / dist, cz / dist);

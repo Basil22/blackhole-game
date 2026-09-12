@@ -11,12 +11,23 @@ export class BlackHoleWorld {
   constructor(opts = {}) {
     this.mu = opts.mu ?? 12.288e6;             // gravitational parameter GM
     this.horizonRadius = opts.horizonRadius ?? 40;
+    // Capture zone: points entering this radius begin gradual absorption
+    // (pulled inward + shrinking) instead of instant deletion at the horizon.
+    // The zone between captureRadius and horizonRadius is the "slurp" zone.
+    this.captureRadius = opts.captureRadius ?? (this.horizonRadius * 1.15);
+    // Absorption speed: how fast captureProgress ramps from 0 to 1 once inside
+    // the capture zone. Higher = faster absorption (seconds⁻¹).
+    this.captureRate = opts.captureRate ?? 3.0;
     this.softening = opts.softening ?? 0.1;    // gravity singularity guard
-    this.dt = opts.dt ?? 1 / 240;              // fixed physics timestep
+    this.dt = opts.dt ?? 1 / 240;              // fixed physics timestep (must match PHYS_DT in game/sim.js)
     this.substeps = opts.substeps ?? 2;        // sub-steps per world step
     this.gravity = opts.gravity ?? true;
     this.drag = opts.drag ?? 0.0;              // linear velocity damping 0..1
     this.despawnRadius = opts.despawnRadius ?? Infinity; // fragments flung out beyond this are removed
+    // Lateral compression factor: squeezes objects perpendicular to the radial
+    // direction toward the BH, mimicking the convergence of tidal field lines.
+    // 0 = no compression, higher = stronger squeeze.
+    this.lateralCompression = opts.lateralCompression ?? 0.35;
     this.bodies = [];
     this.springs = [];
     this.events = [];   // {type: 'tear'|'consume'|'collide', ...}

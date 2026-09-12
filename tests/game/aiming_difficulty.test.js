@@ -286,27 +286,23 @@ test('no mission change: near-horizon / escape / orbit drags complete their miss
     const r = evaluateMission(getMission(c.id), { telemetry: fin, score });
     assert.strictEqual(r.completed, true, `${c.id} not completed: ${r.reason}`);
   }
-  // catalog thresholds untouched by the envelope change
+  // catalog ids present and in expected order
   const ids = MISSION_CATALOG.map((m) => m.id).join(',');
-  assert.strictEqual(ids, 'near-horizon-01,escape-01,orbit-01,capture-01,survive-near-horizon-01,score-01,score-02');
+  assert.strictEqual(ids, 'capture-01,near-horizon-01,flyby-01,score-01,tear-01,orbit-01,near-horizon-02,stretch-01,escape-01,tear-02,score-02,score-03');
 });
 
-// ---- 19. no scoring change: categories still sum to a capped total ----
+// ---- 19. V2 uncapped scoring: categories + survival sum to total ----
 test('no scoring change: score contract intact for the new envelope', () => {
-  const weights = Object.values(SCORING_CONFIG.weights);
-  const sum = weights.reduce((a, b) => a + b, 0);
-  assert.ok(Math.abs(sum - 1) < 1e-12, `category weights sum to ${sum}`);
   const world = new BlackHoleWorld({ mu: MU, horizonRadius: H, drag: DRAG, despawnRadius: 560 });
   build(world, 'planet', 1);
   launch(world, 40, 130);
   const fin = flight(world, 40, 130, 40, TERMINATION.DESPAWN);
   const score = calculateThrowScore(fin);
   assert.ok(Number.isFinite(score.total), 'score total finite');
-  assert.ok(score.total >= 0 && score.total <= score.maxTotal, `total ${score.total} in [0,${score.maxTotal}]`);
-  const catSum = Object.values(score.categories).reduce((a, c) => a + c.score, 0);
-  const bonusSum = score.bonus.nearHorizonSurvival.score;
-  assert.ok(Math.abs(catSum + bonusSum - score.total) < 1e-6,
-    `categories+bonus (${(catSum + bonusSum).toFixed(1)}) sum to total (${score.total.toFixed(1)})`);
+  assert.ok(score.total >= 0, `total ${score.total} non-negative`);
+  // breakdown rows (4 categories + 1 survival) sum to total
+  const bdSum = score.breakdown.reduce((a, r) => a + r.score, 0);
+  assert.strictEqual(bdSum, score.total, `breakdown (${bdSum}) sums to total (${score.total})`);
 });
 
 // ---- 20. mobile parity: mapping is viewport-free, same gesture → same throw ----

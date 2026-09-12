@@ -1,6 +1,6 @@
 // game/presentation.test.js — pure presentation mapping: headlines, tones,
 // distance/state formatting, and the "score is passed through, never
-// recomputed" guarantee.
+// recomputed" guarantee. Updated for V2 scoring categories.
 import assert from 'node:assert';
 import { test } from '../physics/support.js';
 import {
@@ -19,57 +19,56 @@ const tm = (over) => ({
 });
 const sc = (over = {}) => ({
   total: 12480,
-  maxTotal: 10600,
+  maxTotal: 0,
   horizonRadius: 40,
   breakdown: [
-    { key: 'precision', label: 'PRECISION', score: 5420 },
-    { key: 'tidal', label: 'TIDAL', score: 3180 },
-    { key: 'destruction', label: 'DESTRUCTION', score: 1200 },
-    { key: 'survival', label: 'SURVIVAL', score: 2680 },
-    { key: 'orbital', label: 'ORBITAL', score: 0 },
-    { key: 'nearHorizonSurvival', label: 'NEAR-HORIZON SURVIVAL', score: 0 },
+    { key: 'stretch', label: 'Stretch', score: 3180 },
+    { key: 'precision', label: 'Precision', score: 5420 },
+    { key: 'absorption', label: 'Absorption', score: 0 },
+    { key: 'destruction', label: 'Destruction', score: 1200 },
+    { key: 'survival', label: 'Survival', score: 2680 },
   ],
   ...over,
 });
 
-test('HORIZON consumption without tears/stretch → OBJECT CONSUMED (danger)', () => {
+test('HORIZON consumption without tears/stretch -> Object Consumed (danger)', () => {
   const p = presentOutcome(tm({ terminationReason: 'HORIZON', consumedPointCount: 7, trajectoryState: 'HORIZON_CROSSING' }), sc());
-  assert.deepStrictEqual(p, { headline: 'OBJECT CONSUMED', tone: 'danger' });
+  assert.deepStrictEqual(p, { headline: 'Object Consumed', tone: 'danger' });
 });
 
-test('consumption with extreme stretch → SPAGHETTIFIED (danger)', () => {
+test('consumption with extreme stretch -> Spaghettified (danger)', () => {
   const p = presentOutcome(tm({ terminationReason: 'ALL_MASS_CONSUMED', consumedPointCount: 31, maximumStretch: 6.2, tearCount: 9 }), sc());
-  assert.deepStrictEqual(p, { headline: 'SPAGHETTIFIED', tone: 'danger' });
+  assert.deepStrictEqual(p, { headline: 'Spaghettified', tone: 'danger' });
 });
 
-test('consumption with tears (mild stretch) → RIPPED APART (danger)', () => {
+test('consumption with tears (mild stretch) -> Ripped Apart (danger)', () => {
   const p = presentOutcome(tm({ terminationReason: 'ALL_MASS_CONSUMED', consumedPointCount: 31, maximumStretch: 1.4, tearCount: 4 }), sc());
-  assert.deepStrictEqual(p, { headline: 'RIPPED APART', tone: 'danger' });
+  assert.deepStrictEqual(p, { headline: 'Ripped Apart', tone: 'danger' });
 });
 
-test('despawned orbit → ORBITAL INSERTION (special)', () => {
+test('despawned orbit -> Orbital Insertion (special)', () => {
   const p = presentOutcome(tm({ terminationReason: 'DESPAWN', trajectoryState: 'ORBITAL' }), sc());
-  assert.deepStrictEqual(p, { headline: 'ORBITAL INSERTION', tone: 'special' });
+  assert.deepStrictEqual(p, { headline: 'Orbital Insertion', tone: 'special' });
 });
 
-test('despawned near miss close to horizon → CRITICAL NEAR MISS', () => {
+test('despawned near miss close to horizon -> Critical Near Miss', () => {
   const p = presentOutcome(tm({ terminationReason: 'DESPAWN', trajectoryState: 'FLYBY', closestApproach: { ...tm().closestApproach, distance: 48 } }), sc());
-  assert.strictEqual(p.headline, 'CRITICAL NEAR MISS');
+  assert.strictEqual(p.headline, 'Critical Near Miss');
 });
 
-test('despawned escaping far out → CLEAN ESCAPE (success)', () => {
+test('despawned escaping far out -> Clean Escape (success)', () => {
   const p = presentOutcome(tm({ terminationReason: 'DESPAWN', trajectoryState: 'ESCAPING', closestApproach: { ...tm().closestApproach, distance: 300 } }), sc());
-  assert.deepStrictEqual(p, { headline: 'CLEAN ESCAPE', tone: 'success' });
+  assert.deepStrictEqual(p, { headline: 'Clean Escape', tone: 'success' });
 });
 
-test('despawned flyby → SURVIVED THE PASS (success)', () => {
+test('despawned flyby -> Survived The Pass (success)', () => {
   const p = presentOutcome(tm({ terminationReason: 'DESPAWN', trajectoryState: 'FLYBY', closestApproach: { ...tm().closestApproach, distance: 120 } }), sc());
-  assert.deepStrictEqual(p, { headline: 'SURVIVED THE PASS', tone: 'success' });
+  assert.deepStrictEqual(p, { headline: 'Survived The Pass', tone: 'success' });
 });
 
-test('player reset → THROW ABORTED (neutral)', () => {
+test('player reset -> Throw Aborted (neutral)', () => {
   const p = presentOutcome(tm({ terminationReason: 'PLAYER_RESET' }), sc());
-  assert.deepStrictEqual(p, { headline: 'THROW ABORTED', tone: 'neutral' });
+  assert.deepStrictEqual(p, { headline: 'Throw Aborted', tone: 'neutral' });
 });
 
 test('state tones for the aiming HUD', () => {
@@ -87,21 +86,21 @@ test('distance + state formatting are human-readable', () => {
   assert.strictEqual(formatDistance(1234.5), '1.2 km');
   assert.strictEqual(formatDistance(0), '0 m');
   assert.strictEqual(formatDistance(NaN), '0 m');
-  assert.strictEqual(formatState('HORIZON_CROSSING'), 'HORIZON CROSSING');
-  assert.strictEqual(formatState('ORBITAL'), 'ORBITAL');
+  assert.strictEqual(formatState('HORIZON_CROSSING'), 'Horizon Crossing');
+  assert.strictEqual(formatState('ORBITAL'), 'Orbital');
 });
 
-test('presentResult passes the score through verbatim — never recomputed', () => {
+test('presentResult passes the score through verbatim -- never recomputed', () => {
   const telemetry = tm({ terminationReason: 'ALL_MASS_CONSUMED', consumedPointCount: 31, maximumStretch: 3 });
   const score = sc();
   const p = presentResult(telemetry, score);
   assert.strictEqual(p.total, 12480);
-  assert.strictEqual(p.maxTotal, 10600);
-  assert.strictEqual(p.headline, 'SPAGHETTIFIED');
-  // breakdown rows mirror the scorer's own numbers, key by key
-  assert.deepStrictEqual(p.breakdown, score.breakdown.map((r) => ({ key: r.key, label: r.label, score: r.score })));
-  assert.strictEqual(p.breakdown[0].score, 5420);
-  assert.strictEqual(p.breakdown[4].key, 'orbital');
+  assert.strictEqual(p.maxTotal, 0);
+  assert.strictEqual(p.headline, 'Spaghettified');
+  // breakdown rows have annotations added
+  assert.strictEqual(p.breakdown.length, score.breakdown.length);
+  assert.strictEqual(p.breakdown[0].key, 'stretch');
+  assert.strictEqual(p.breakdown[0].score, 3180);
 });
 
 test('presentResult is NaN-proof and never invents numbers', () => {

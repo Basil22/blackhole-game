@@ -114,11 +114,11 @@ export function unlockLevelForObject(objectId, completedLevelIdsList) {
   return prev ? prev.index : 0;
 }
 
-// Player-facing lock hint for a locked object, e.g. 'CLEAR LEVEL 1'. Empty
+// Player-facing lock hint for a locked object, e.g. 'Clear Level 1'. Empty
 // string when the object is unlocked or unknown.
 export function unlockHintForObject(objectId, completedLevelIdsList) {
   const n = unlockLevelForObject(objectId, completedLevelIdsList);
-  return n ? `CLEAR LEVEL ${n}` : '';
+  return n ? `Clear Level ${n}` : '';
 }
 
 // The level index the object belongs to / unlocks at: rock→1, human→2,

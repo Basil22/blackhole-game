@@ -10,11 +10,11 @@ import { OBJECT_IDS, OBJECT_CHALLENGE_PROFILES, getObjectChallengeProfile } from
 
 // Mission difficulty tier → label used in the selector (allowed values 1..5).
 export const MISSION_DIFFICULTY_LABELS = Object.freeze({
-  1: 'EASY',
-  2: 'BALANCED',
-  3: 'CHALLENGING',
-  4: 'HARD',
-  5: 'EXTREME',
+  1: 'Easy',
+  2: 'Balanced',
+  3: 'Challenging',
+  4: 'Hard',
+  5: 'Extreme',
 });
 
 // Non-empty unique string list (uppercased tokens / words are fine).

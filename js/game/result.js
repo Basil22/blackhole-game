@@ -6,14 +6,13 @@
 
 import { presentResult, formatScore } from './presentation.js';
 
-const ROW_KEYS = ['precision', 'tidal', 'destruction', 'survival', 'orbital', 'nearHorizonSurvival'];
+const ROW_KEYS = ['stretch', 'precision', 'absorption', 'destruction', 'survival'];
 const ROW_LABELS = {
-  precision: 'PRECISION',
-  tidal: 'TIDAL',
-  destruction: 'DESTRUCTION',
-  survival: 'SURVIVAL',
-  orbital: 'ORBITAL',
-  nearHorizonSurvival: 'NEAR-HORIZON',
+  stretch: 'Stretch',
+  precision: 'Precision',
+  absorption: 'Absorption',
+  destruction: 'Destruction',
+  survival: 'Survival',
 };
 
 export class ResultPanel {
@@ -83,6 +82,19 @@ export class ResultPanel {
     }
     this.missionEl.append(this.missionStatusEl, this.missionTitleEl, this.nudgeEl, this.progressionWrap);
 
+    // Stars line (mission star rating)
+    this.starsEl = document.createElement('div');
+    this.starsEl.className = 'rs-stars';
+
+    // NEW BEST badge
+    this.bestBadge = document.createElement('div');
+    this.bestBadge.className = 'rs-best-badge';
+    this.bestBadge.textContent = 'New Best';
+
+    // Previous best line
+    this.prevBestEl = document.createElement('div');
+    this.prevBestEl.className = 'rs-prev-best';
+
     const rows = document.createElement('div');
     rows.className = 'rs-rows';
     this.rowEls = [];
@@ -90,9 +102,17 @@ export class ResultPanel {
       const row = document.createElement('div');
       row.className = 'rs-row';
       row.dataset.key = key;
-      row.innerHTML = `<span class="rs-row-label">${ROW_LABELS[key]}</span><span class="rs-row-score">0</span>`;
+      row.innerHTML = `<span class="rs-row-label">${ROW_LABELS[key]}</span>`
+        + `<span class="rs-row-bar"><span class="rs-row-fill"></span></span>`
+        + `<span class="rs-row-score">0</span>`
+        + `<span class="rs-row-annotation"></span>`;
       rows.appendChild(row);
-      this.rowEls.push({ key, el: row, scoreEl: row.querySelector('.rs-row-score') });
+      this.rowEls.push({
+        key, el: row,
+        scoreEl: row.querySelector('.rs-row-score'),
+        fillEl: row.querySelector('.rs-row-fill'),
+        annotEl: row.querySelector('.rs-row-annotation'),
+      });
     }
 
     const close = document.createElement('button');
@@ -105,10 +125,10 @@ export class ResultPanel {
     const again = document.createElement('button');
     again.className = 'ctrl-btn primary rs-again';
     again.type = 'button';
-    again.textContent = 'THROW AGAIN';
+    again.textContent = 'Throw Again';
     again.addEventListener('click', () => this.onAgain());
 
-    el.append(close, this.objEl, this.headEl, this.totalLineEl, this.missionEl, rows, again);
+    el.append(close, this.objEl, this.headEl, this.totalLineEl, this.starsEl, this.bestBadge, this.prevBestEl, this.missionEl, rows, again);
   }
 
   // Show a result from finalized telemetry + score (plain pass-through display).
@@ -118,7 +138,7 @@ export class ResultPanel {
   // tone }) for a NEW mission unlock / campaign end. `campaignRewards` is an
   // optional ARRAY of level-complete rewards ({ kicker, title, tagline, tone,
   // hint }); when present it takes precedence over progressionView.
-  show(telemetry, score, objectName, missionView, progressionView, campaignRewards) {
+  show(telemetry, score, objectName, missionView, progressionView, campaignRewards, { stars, isNewBest, previousBest } = {}) {
     const token = ++this._token;
     cancelAnimationFrame(this._raf);
     const pres = presentResult(telemetry, score);
@@ -128,8 +148,40 @@ export class ResultPanel {
     this.headEl.classList.remove('tonal-success', 'tonal-special', 'tonal-danger', 'tonal-neutral');
     this.headEl.classList.add(`tonal-${pres.tone}`);
 
-    // score: max passes through verbatim from the scorer, never animated
-    this.maxEl.textContent = `/ ${formatScore(pres.maxTotal)}`;
+    // Uncapped scoring: no "/ max" display. Show "pts" instead.
+    this.maxEl.textContent = pres.maxTotal > 0 ? `/ ${formatScore(pres.maxTotal)}` : 'pts';
+
+    // star rating (only when a mission was active and completed)
+    if (Number.isFinite(stars) && stars > 0) {
+      const filled = Math.min(3, stars);
+      this.starsEl.textContent = '\u2605'.repeat(filled) + '\u2606'.repeat(3 - filled);
+      this.starsEl.setAttribute('aria-label', `${filled} of 3 stars`);
+      this.starsEl.classList.add('show');
+    } else {
+      this.starsEl.textContent = '';
+      this.starsEl.classList.remove('show');
+    }
+
+    // NEW BEST / previous best display
+    if (isNewBest) {
+      this.bestBadge.classList.add('show');
+      if (Number.isFinite(previousBest) && previousBest > 0) {
+        this.prevBestEl.textContent = `Previous best: ${formatScore(previousBest)}`;
+        this.prevBestEl.classList.add('show');
+      } else {
+        this.prevBestEl.textContent = '';
+        this.prevBestEl.classList.remove('show');
+      }
+    } else {
+      this.bestBadge.classList.remove('show');
+      if (Number.isFinite(previousBest) && previousBest > 0) {
+        this.prevBestEl.textContent = `Best: ${formatScore(previousBest)}`;
+        this.prevBestEl.classList.add('show');
+      } else {
+        this.prevBestEl.textContent = '';
+        this.prevBestEl.classList.remove('show');
+      }
+    }
 
     // mission line (presented, never recalculated)
     if (missionView && missionView.title && missionView.status) {
@@ -155,9 +207,18 @@ export class ResultPanel {
     }
 
     // Row values are the scorer's own numbers, written immediately.
+    // For fill bars: use a reference score per category since scoring is uncapped.
+    // The bar fills to 100% at the reference value, can overflow for extreme throws.
+    const REF_SCORES = { stretch: 3000, precision: 3000, absorption: 2500, destruction: 1500, survival: 3000 };
     for (const row of this.rowEls) {
       const r = pres.breakdown.find((b) => b.key === row.key);
       row.scoreEl.textContent = formatScore(r ? r.score : 0);
+      // Fill bar: proportional to reference score, capped at 100% visually
+      const ref = REF_SCORES[row.key] || 3000;
+      const pct = r ? Math.min(100, Math.round((r.score / ref) * 100)) : 0;
+      if (row.fillEl) row.fillEl.style.width = `${pct}%`;
+      // Contextual annotation
+      if (row.annotEl) row.annotEl.textContent = r ? (r.annotation || '') : '';
       row.el.classList.remove('revealed');
     }
 
@@ -221,6 +282,9 @@ export class ResultPanel {
     this.totalEl.textContent = '0';
     this.headEl.textContent = '';
     this.objEl.textContent = '';
+    this.starsEl.classList.remove('show');
+    this.bestBadge.classList.remove('show');
+    this.prevBestEl.classList.remove('show');
     this.missionEl.classList.remove('show');
     this.nudgeEl.classList.remove('show');
     this._revealRows(0);

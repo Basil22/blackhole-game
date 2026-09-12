@@ -39,13 +39,15 @@ export function startLoop(game) {
     const prox = computeProximity(game);
     game.scene.bh?.setProximity(prox);
     game.audio?.setProximity(prox);
+    // Auto slow-mo: smoothly decelerate when near the horizon
+    if (game.updateAutoSlow) game.updateAutoSlow(prox);
     if (prox >= 0.92 && !game._horizonSounded) {
       game._horizonSounded = true;
       game.audio?.horizon();
     }
     game.scene.update(dtReal, game.simTime);
     game.particles.update(dtReal);
-    game.trajPath.tick(dtReal);   // post-launch predicted-path ghost fade
+    game.trajPath.tick(dtReal);
 
     game._readoutTimer -= dtReal;
     if (game._readoutTimer <= 0) {
@@ -71,6 +73,9 @@ export function startLoop(game) {
         if (reason === TERMINATION.DESPAWN && game.lastTelemetry.trajectoryState === 'ESCAPING') {
           game.audio?.escape();
         }
+        if (game.lastTelemetry.trajectoryState === 'ORBITAL') {
+          game.audio?.play?.('orbit-insert');
+        }
         if (game.onThrowEnded) game.onThrowEnded(game.lastTelemetry, game.lastScore);
         o.visualizer.dispose();
         game.objects.splice(i, 1);
@@ -78,6 +83,7 @@ export function startLoop(game) {
     }
     if (game.state === 'flying' && game.objects.length === 0) {
       game.state = 'idle';
+      game._releaseWakeLock();
       game.onUiState({ state: 'idle', consumed: true });
     }
 
@@ -111,8 +117,24 @@ function handleEvents(game, o, events) {
       game.scene.bh?.flash();
       // Deep gravitational drop as matter is consumed.
       game.audio?.capture();
+      if (game._screenEffects && !game._reduceMotion) {
+        screenShake(game.container, 'screen-shake-big');
+      }
     }
   }
+}
+
+// Phase D: apply screen shake CSS animation; auto-removes after completion.
+function screenShake(el, className) {
+  if (!el) return;
+  el.classList.remove('screen-shake', 'screen-shake-big');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add(className || 'screen-shake');
+  const onEnd = () => {
+    el.classList.remove(className || 'screen-shake');
+    el.removeEventListener('animationend', onEnd);
+  };
+  el.addEventListener('animationend', onEnd);
 }
 
 // 0 → nothing near the response zone, 1 → matter on the horizon rim. Drives the

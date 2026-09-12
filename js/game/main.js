@@ -35,8 +35,10 @@ export class Game {
     this.objects = [];          // active sims (each throw = own world+visualizer)
     this.held = null;           // aim-preview object { world, visualizer, meta }
     this.state = 'idle';        // idle | aim | flying
-    this.slowmo = false;
+    this.slowmo = false;            // manual slow-mo toggle (0.25x)
     this.timeScale = 1;
+    this._autoSlowTarget = 1;       // auto slow-mo target (0.5 when near horizon)
+    this._autoSlowEnabled = true;   // can be disabled in settings
     this.size = 1;              // throwable scale multiplier
     this.throwCount = 0;
 
@@ -60,9 +62,16 @@ export class Game {
     this.spawnPos = SPAWN.clone();
 
     this._disposed = false;
+    // Screen Wake Lock: prevent dimming/lock during active gameplay (aim/fly).
+    // Acquired on beginAim, released on idle. No-op when API is unavailable.
+    this._wakeLock = null;
 
     this.aimArrow = new AimArrow(this.scene.scene);
     this.trajPath = new TrajectoryPath(this.scene.scene, { horizonRadius: this.config.horizonRadius });
+    // Screen shake on consumption events
+    this._screenEffects = true;
+    this._reduceMotion = typeof matchMedia === 'function'
+      ? matchMedia('(prefers-reduced-motion: reduce)').matches : false;
     // Pure prediction result while aiming (plain data, see guidance/guidance.js);
     // null outside aiming. Exposed at window.__game.guidance. The prediction
     // NEVER affects the real simulation — it is purely informational.
@@ -127,8 +136,18 @@ export class Game {
   beginAim() {
     if (this.state === 'aim') return;
     if (!this.currentId) return;
+    // Single-throw enforcement: auto-cancel any in-flight object silently
+    // (no score, no result panel) so the player can immediately rethrow.
+    if (this.state === 'flying' && this.objects.length > 0) {
+      for (const o of this.objects) {
+        o.visualizer.dispose();
+      }
+      this.objects.length = 0;
+      this._releaseWakeLock();
+    }
     if (this.onBeginAim) this.onBeginAim();   // dismiss any prior throw result
     this.audio?.aimStart();
+    this._acquireWakeLock();
     this._spawnHeld();          // show the object at full scale, sitting at spawn
     this.state = 'aim';
     this.aim.active = false;
@@ -199,6 +218,7 @@ export class Game {
   }
 
   disposeObject() {
+    this._releaseWakeLock();
     // Player cut the throw short — finalize any in-flight telemetry as such.
     for (const o of this.objects) {
       if (o.telemetry) {
@@ -218,8 +238,25 @@ export class Game {
 
   toggleSlowmo() {
     this.slowmo = !this.slowmo;
-    this.timeScale = this.slowmo ? 0.25 : 1;
+    // Manual slow-mo overrides auto-slow. When manual is off, auto-slow takes over.
+    this.timeScale = this.slowmo ? 0.25 : this._autoSlowTarget;
     this.onUiState({ slowmo: this.slowmo });
+  }
+
+  // Called each frame by the loop to smoothly interpolate auto-slow based on
+  // proximity. Manual slow-mo (0.25x) always takes priority.
+  updateAutoSlow(proximity) {
+    if (!this._autoSlowEnabled || this.slowmo) return;
+    // Start auto-slow when proximity >= 0.4 (about 2.8× horizon radius)
+    // Target 0.5x at full proximity (right on the horizon)
+    if (proximity >= 0.4) {
+      const t = (proximity - 0.4) / 0.6; // 0 at prox=0.4, 1 at prox=1.0
+      this._autoSlowTarget = 1 - t * 0.5; // 1.0 → 0.5
+    } else {
+      this._autoSlowTarget = 1;
+    }
+    // Smooth interpolation toward target (lerp)
+    this.timeScale += (this._autoSlowTarget - this.timeScale) * 0.08;
   }
 
   // Phase 17 — CANCEL: back out of an aim without launching or finalizing
@@ -232,6 +269,7 @@ export class Game {
   // disposeObject() path as audio-silent stay intact.
   cancelAim() {
     if (this.state !== 'aim') return;
+    this._releaseWakeLock();
     this._disposeHeld();
     this._clearGuidance();
     this.aim.active = false;
@@ -295,6 +333,16 @@ export class Game {
     this.guideHud.hide();
   }
 
+  // ---------- wake lock ----------
+  async _acquireWakeLock() {
+    if (this._wakeLock || !navigator.wakeLock) return;
+    try { this._wakeLock = await navigator.wakeLock.request('screen'); } catch { /* ignore */ }
+  }
+
+  _releaseWakeLock() {
+    if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
+  }
+
   // ---------- resize / dispose ----------
   _bindResize() {
     this._onResize = () => this.scene.resize();
@@ -304,7 +352,6 @@ export class Game {
   dispose() {
     this._disposed = true;
     this.stopLoop();
-    this.trajPath.dispose();
     window.removeEventListener('resize', this._onResize);
   }
 }

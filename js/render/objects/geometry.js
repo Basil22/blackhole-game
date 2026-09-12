@@ -7,6 +7,8 @@ export const _mid = new THREE.Vector3();
 export const _dir = new THREE.Vector3();
 export const _up = new THREE.Vector3(0, 1, 0);
 export const _quat = new THREE.Quaternion();
+// Scratch vector for normalize-in-place (avoids .clone() allocation in hot path)
+const _normScratch = new THREE.Vector3();
 
 // ---------- unit shape cache ----------
 const _geoCache = {};
@@ -71,7 +73,9 @@ export function partMaterial(color, opts = {}) {
 // Orient mesh so +Y points along `dir`, place at `pos`, scale y by len.
 export function placeAlong(mesh, pos, dir, len, crossR) {
   mesh.position.copy(pos);
-  _quat.setFromUnitVectors(_up, dir.clone().normalize());
+  // Normalize into scratch vector to avoid .clone() allocation per frame
+  _normScratch.copy(dir).normalize();
+  _quat.setFromUnitVectors(_up, _normScratch);
   mesh.quaternion.copy(_quat);
   mesh.scale.set(crossR, Math.max(len, 1e-4), crossR);
 }

@@ -11,10 +11,10 @@ export const OBJECT_IDS = Object.freeze(['rock', 'human', 'ship', 'planet']);
 
 // Difficulty tier → human label (allowed values 1..4).
 export const OBJECT_DIFFICULTY_LABELS = Object.freeze({
-  1: 'EASY',
-  2: 'BALANCED',
-  3: 'HARD',
-  4: 'EXTREME',
+  1: 'Easy',
+  2: 'Balanced',
+  3: 'Hard',
+  4: 'Extreme',
 });
 
 function makeProfile(props) {
@@ -35,7 +35,7 @@ export const OBJECT_CHALLENGE_PROFILES = Object.freeze({
     title: 'Asteroid',
     shortDescription: 'A forgiving first throw.',
     difficulty: 1,
-    recommendedMissionIds: Object.freeze(['near-horizon-01', 'capture-01', 'score-01']),
+    recommendedMissionIds: Object.freeze(['capture-01', 'near-horizon-01', 'flyby-01', 'score-01', 'tear-01']),
     challengeTags: Object.freeze(['LIGHT', 'EASY', 'STURDY']),
     gameplayHint: 'Light and slow-spreading — an easy first object.',
   }),
@@ -44,7 +44,7 @@ export const OBJECT_CHALLENGE_PROFILES = Object.freeze({
     title: 'Astronaut',
     shortDescription: 'Balanced — articulated and dramatic.',
     difficulty: 2,
-    recommendedMissionIds: Object.freeze(['near-horizon-01', 'escape-01', 'survive-near-horizon-01', 'score-01']),
+    recommendedMissionIds: Object.freeze(['near-horizon-01', 'near-horizon-02', 'stretch-01', 'escape-01']),
     challengeTags: Object.freeze(['BALANCED', 'ARTICULATED', 'TEARS']),
     gameplayHint: 'Every limb stretches and tears dramatically under tidal stress.',
   }),
@@ -53,7 +53,7 @@ export const OBJECT_CHALLENGE_PROFILES = Object.freeze({
     title: 'Starship',
     shortDescription: 'Heavy hull — rewards precise aim.',
     difficulty: 3,
-    recommendedMissionIds: Object.freeze(['escape-01', 'survive-near-horizon-01', 'orbit-01', 'score-02']),
+    recommendedMissionIds: Object.freeze(['escape-01', 'orbit-01', 'tear-02', 'score-02']),
     challengeTags: Object.freeze(['HEAVY', 'WING_SHEAR', 'PRECISION']),
     gameplayHint: 'A heavier object demands more precise launch timing.',
   }),
@@ -62,7 +62,7 @@ export const OBJECT_CHALLENGE_PROFILES = Object.freeze({
     title: 'Planet',
     shortDescription: 'Huge — shreds brilliantly up close.',
     difficulty: 4,
-    recommendedMissionIds: Object.freeze(['capture-01', 'orbit-01', 'score-02']),
+    recommendedMissionIds: Object.freeze(['tear-02', 'score-02', 'score-03']),
     challengeTags: Object.freeze(['LARGE', 'HIGH_TIDAL_PAYOFF', 'FRAGILE']),
     gameplayHint: 'Its size makes close approaches spectacular — and dangerous.',
   }),

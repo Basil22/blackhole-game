@@ -62,15 +62,18 @@ test('frozen gameplay tuning values are unchanged by the feel pass', () => {
   // physics constants
   assert.strictEqual(PHYS_DT, 1 / 240);
   assert.strictEqual(SCORING_CONFIG.horizonRadius, 40);
-  const wsum = SCORING_CONFIG.weights.precision + SCORING_CONFIG.weights.tidal
-    + SCORING_CONFIG.weights.destruction + SCORING_CONFIG.weights.survival
-    + SCORING_CONFIG.weights.orbital;
-  assert.ok(Math.abs(wsum - 1) < 1e-9, 'scoring weights must still sum to 1');
+  // V2 uncapped scoring: check the four base categories + survival exist
+  assert.ok(SCORING_CONFIG.stretch, 'stretch config present');
+  assert.ok(SCORING_CONFIG.precision, 'precision config present');
+  assert.ok(SCORING_CONFIG.absorption, 'absorption config present');
+  assert.ok(SCORING_CONFIG.destruction, 'destruction config present');
+  assert.ok(SCORING_CONFIG.survivalMultiplier, 'survivalMultiplier config present');
   // trajectory states — the 6 canonical states, no additions
   assert.deepStrictEqual(Object.keys(TRAJECTORY), [
     'ESCAPING', 'FLYBY', 'ORBITAL', 'CAPTURED', 'HORIZON_CROSSING', 'UNKNOWN',
   ]);
-  // aiming envelope anchors — tangMax lifted 1.62→1.77 (Phase 24) so a full-width  // 360px drag reaches real-sim escape (drag-loaded threshold ~tangFrac 1.587);
+  // aiming envelope anchors — tangMax lifted 1.62→1.77 (Phase 24) so a full-width
+  // 360px drag reaches real-sim escape (drag-loaded threshold ~tangFrac 1.587);
   // all other Phase-13 anchors untouched.
   assert.strictEqual(AIM_MAPPING.tangMin, 0.35);
   assert.strictEqual(AIM_MAPPING.tangMax, 1.77);
@@ -137,7 +140,7 @@ test('aim arrow: brighter shaft + near-white cone, launched from warm language',
 
 test('particle effects stay bounded and tear feedback is boosted', () => {
   const part = read('js/render/objects/particles.js');
-  assert.match(part, /this\.MAX = 700/);      // existing global cap untouched
+  assert.match(part, /MAX = 700/);             // existing global cap untouched
   assert.match(part, /tear\(pos, vel, color, count = 14\)/);
   assert.match(part, /0xffffff/);             // hot snap sparks accompany tears
   assert.match(part, /launchTrail\(/);

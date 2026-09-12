@@ -10,6 +10,10 @@ export class PointMass {
     this.mass = mass;
     this.radius = radius;
     this.alive = true;
+    // Gradual absorption: 0 = free, 1 = fully absorbed. Points inside the
+    // capture zone (horizonRadius..captureRadius) get pulled inward and shrink
+    // over time, creating the "slurped in" visual instead of instant deletion.
+    this.captureProgress = 0;
   }
 }
 

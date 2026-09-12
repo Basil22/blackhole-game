@@ -10,9 +10,9 @@ export function updateReadout(el, telemetry, timeScale, hasObjects) {
     ? Math.round((telemetry.maxSpan / telemetry.initialSpan) * 100)
     : 0;
   el.innerHTML =
-    `<b>TIDAL STRETCH:</b> ${stretchPct}%` +
-    (telemetry.tears ? `&nbsp;&nbsp;<b>TEARS:</b> ${telemetry.tears}` : '') +
-    `&nbsp;&nbsp;<b>DIST:</b> ${Math.round(telemetry.dist)}` +
+    `<b>Tidal Stretch:</b> ${stretchPct}%` +
+    (telemetry.tears ? `&nbsp;&nbsp;<b>Tears:</b> ${telemetry.tears}` : '') +
+    `&nbsp;&nbsp;<b>Dist:</b> ${Math.round(telemetry.dist)}` +
     `&nbsp;&nbsp;<b>${timeScale.toFixed(2)}×</b>`;
   el.style.opacity = '1';
 }

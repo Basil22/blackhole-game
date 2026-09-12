@@ -22,7 +22,7 @@ import { icon, iconForObject, iconNames } from '../../js/ui/icons.js';
 import { CATALOG } from '../../js/objects.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
 
 // Strict emoji detection — pictographs + variation selectors + classic emoji
 // ranges. Geometric text glyphs used by the difficulty dots (● ○) are excluded
@@ -101,9 +101,9 @@ test('applyBranding sets the document title and wordmark safely', () => {
 
 test('index.html carries the brand wordmark + brand title (no legacy naming)', () => {
   const html = read('index.html');
-  assert.ok(html.includes('BLACK HOLE'), 'wordmark text');
+  assert.ok(html.includes('Black Hole'), 'wordmark text');
   assert.ok(html.includes('data-brand'), 'wordmark is JS-driven');
-  assert.ok(/<title>BLACK HOLE/.test(html), 'document title branded');
+  assert.ok(/<title>Black Hole/.test(html), 'document title branded');
   assert.ok(!/Event Horizon|EVENT HORIZON/.test(html), 'legacy naming gone');
 });
 
@@ -202,7 +202,7 @@ test('disabled buttons are clearly identifiable', () => {
 // ------------------------------------------------- mission state text ------
 test('mission state text CURRENT / COMPLETED / LOCKED is written by the UI', () => {
   const src = read('js/game/missionui.js');
-  for (const s of ['LOCKED', 'COMPLETED', 'CURRENT']) {
+  for (const s of ['Locked', 'Completed', 'Current']) {
     assert.ok(src.includes(`'${s}'`), `state text ${s} missing`);
   }
 });
