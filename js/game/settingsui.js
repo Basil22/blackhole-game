@@ -11,10 +11,10 @@
 import { icon } from '../ui/icons.js';
 
 const SETTING_ROWS = [
-  { key: 'audio', label: 'Audio', desc: 'Sound effects' },
-  { key: 'haptics', label: 'Haptics', desc: 'Vibration feedback' },
-  { key: 'skipIntro', label: 'Skip Intro On Opening', desc: 'Go straight to gameplay when you press Play' },
-  { key: 'reduceMotion', label: 'Reduced Motion', desc: 'Removes the camera dive, exposure and bounce. Follows your system when Off' },
+  { key: 'audio', label: 'AUDIO', desc: 'Sound effects' },
+  { key: 'haptics', label: 'HAPTICS', desc: 'Vibration feedback' },
+  { key: 'skipIntro', label: 'SKIP INTRO ON OPENING', desc: 'Go straight to gameplay when you press PLAY' },
+  { key: 'reduceMotion', label: 'REDUCED MOTION', desc: 'Removes the camera dive, exposure and bounce. Follows your system when OFF' },
 ];
 
 export class SettingsUI {

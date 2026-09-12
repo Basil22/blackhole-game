@@ -4,6 +4,7 @@
 import { buildLights } from './lights.js';
 import { makeStarLayer } from './starfield.js';
 import { buildBlackHole } from './blackhole.js';
+import { createLensingPass } from './blackhole/lensing.js';
 
 const _spinQ = new THREE.Quaternion();
 const _zAxis = new THREE.Vector3(0, 0, 1);
@@ -54,6 +55,13 @@ export class SceneManager {
     this.photonRing = bh.photonRing;
     this.glowSprite = bh.glowSprite;
 
+    this.lensing = createLensingPass({
+      renderer: this.renderer,
+      scene: this.scene,
+      camera: this.camera,
+      hr: this.config.horizonRadius,
+    });
+
     // Real-time animation clock for the black hole. simTime only advances while
     // physics runs, so the disk/ring would freeze the moment a throw ends.
     this._animTime = 0;
@@ -69,6 +77,10 @@ export class SceneManager {
   update(dt, time) {
     this._animTime += dt;
     if (this.bh) this.bh.update(dt, this._animTime);
+    if (this.lensing) {
+      this.lensing.update(dt, this._animTime);
+      this.lensing.sync(this.camera);
+    }
     this.stars.rotation.y += dt * 0.002;
     if (this.stars2) this.stars2.rotation.y += dt * 0.0015;
     // photon ring always faces the camera -> full circle from any angle
@@ -85,6 +97,20 @@ export class SceneManager {
   }
 
   render() {
+    if (this.lensing && this.lensing.enabled.value) {
+      this.lensing.render();
+      this.lensing.composite();
+    }
     this.renderer.render(this.scene, this.camera);
+  }
+
+  _applyLensingVisibility(on) {
+    if (this.lensing) {
+      this.lensing.enabled.value = on;
+      const visible = !on;
+      if (this.hole) this.hole.visible = visible;
+      if (this.diskGroup) this.diskGroup.visible = visible;
+      if (this.glowSprite) this.glowSprite.visible = visible;
+    }
   }
 }

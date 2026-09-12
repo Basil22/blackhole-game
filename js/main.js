@@ -321,6 +321,14 @@ window.__settings = settings;  // debug hook (settings introspection)
 window.__opening = opening;    // debug hook (harness: opening.skip())
 window.__missionUI = missionUI; // debug hook (selection + evaluation readback)
 window.__campaignUI = campaignUI; // debug hook (level selector introspection)
+window.__BH_LENSING__ = {
+  toggle: () => {
+    const on = !game.scene.lensing.enabled.value;
+    game.scene._applyLensingVisibility(on);
+  },
+  setQuality: (q) => game.scene.lensing.setQuality(q),
+  state: () => game.scene.lensing.enabled.value,
+};
 Object.defineProperty(window.__game, 'progression', {
   get: () => progression.snapshot,
 });
