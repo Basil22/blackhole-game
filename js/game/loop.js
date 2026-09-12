@@ -118,7 +118,7 @@ function handleEvents(game, o, events) {
       // Deep gravitational drop as matter is consumed.
       game.audio?.capture();
       if (game._screenEffects && !game._reduceMotion) {
-        screenShake(game.container, 'screen-shake-big');
+        screenShake(game.container, 'screen-shake-small');
       }
     }
   }
